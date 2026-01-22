@@ -105,7 +105,7 @@ class MusicMakerApp:
             title=ft.Text("AI音乐创作软件"),
             actions=[
                 ft.IconButton(
-                    icon="settings",
+                    icon=ft.icons.Icons.SETTINGS,
                     tooltip="配置",
                     on_click=self._on_config_click
                 )

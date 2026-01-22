@@ -17,18 +17,18 @@ class AudioPlayer:
         """
         self.on_play_end = on_play_end
         self._play_button = ft.IconButton(
-            icon="play_arrow",
+            icon=ft.icons.Icons.PLAY_ARROW,
             tooltip="播放",
             on_click=self._on_play_click
         )
         self._pause_button = ft.IconButton(
-            icon="pause",
+            icon=ft.icons.Icons.PAUSE,
             tooltip="暂停",
             on_click=self._on_pause_click,
             visible=False
         )
         self._stop_button = ft.IconButton(
-            icon="stop",
+            icon=ft.icons.Icons.STOP,
             tooltip="停止",
             on_click=self._on_stop_click,
             visible=False

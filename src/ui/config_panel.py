@@ -119,7 +119,7 @@ class ConfigPanel:
         )
 
         select_button = ft.IconButton(
-            icon="check_circle" if is_current else "radio_button_unchecked",
+            icon=ft.icons.Icons.CHECK_CIRCLE if is_current else ft.icons.Icons.RADIO_BUTTON_UNCHECKED,
             tooltip="选择此模型" if not is_current else "当前模型",
             on_click=lambda e, mid=model_id: self._on_model_select(mid),
             disabled=is_current
