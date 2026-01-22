@@ -61,12 +61,12 @@ class ConfigPanel:
                 ft.Row([
                     ft.ElevatedButton(
                         "保存配置",
-                        icon="save",
+                        icon=ft.icons.Icons.SAVE,
                         on_click=self._on_save_click
                     ),
                     ft.ElevatedButton(
                         "取消",
-                        icon="cancel",
+                        icon=ft.icons.Icons.CANCEL,
                         on_click=self._on_cancel_click
                     )
                 ], alignment=ft.MainAxisAlignment.END)

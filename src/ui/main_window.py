@@ -119,13 +119,13 @@ class MusicMakerApp:
             min_extended_width=200,
             destinations=[
                 ft.NavigationRailDestination(
-                    icon="create",
-                    selected_icon="create",
+                    icon=ft.icons.Icons.CREATE,
+                    selected_icon=ft.icons.Icons.CREATE,
                     label="创作"
                 ),
                 ft.NavigationRailDestination(
-                    icon="history",
-                    selected_icon="history",
+                    icon=ft.icons.Icons.HISTORY,
+                    selected_icon=ft.icons.Icons.HISTORY,
                     label="历史"
                 )
             ],
