@@ -1,5 +1,5 @@
 """
-生成器管理模块 - 协调多模型调用，统一输出格式
+生成器管理模块 - 支持多模型切换
 """
 from typing import Dict, Any, Optional, List
 from .base import BaseAIGenerator
@@ -8,12 +8,13 @@ from ..core.exceptions import APIException, ValidationException
 
 
 class GeneratorManager:
-    """生成器管理器 - 协调多模型调用"""
+    """生成器管理器 - 支持多模型切换"""
 
     def __init__(self):
         """初始化生成器管理器"""
         self._generators: Dict[str, BaseAIGenerator] = {}
         self._current_generator: Optional[BaseAIGenerator] = None
+        self._config: Dict[str, Any] = {}
 
     def register_generator(self, name: str, generator: BaseAIGenerator) -> None:
         """
@@ -136,13 +137,69 @@ class GeneratorManager:
         Args:
             config: 配置字典
         """
-        openai_config = config.get('openai', {})
+        self._config = config
+        models_config = config.get('models', {})
+        current_model = config.get('current_model', 'openai')
 
-        if openai_config.get('api_key'):
-            openai_client = OpenAIClient(openai_config)
-            self.register_generator('openai', openai_client)
-            if not self._current_generator:
-                self.set_current_generator('openai')
+        self._generators.clear()
+
+        for model_id, model_config in models_config.items():
+            if not model_config.get('enabled', False):
+                continue
+
+            if not model_config.get('api_key'):
+                continue
+
+            try:
+                generator = self._create_generator(model_id, model_config)
+                if generator:
+                    self.register_generator(model_id, generator)
+            except Exception as e:
+                print(f"创建生成器 {model_id} 失败: {e}")
+
+        if current_model in self._generators:
+            self.set_current_generator(current_model)
+        elif self._generators:
+            first_available = list(self._generators.keys())[0]
+            self.set_current_generator(first_available)
+
+    def _create_generator(self, model_id: str, model_config: Dict[str, Any]) -> Optional[BaseAIGenerator]:
+        """
+        创建生成器实例
+
+        Args:
+            model_id: 模型ID
+            model_config: 模型配置
+
+        Returns:
+            生成器实例
+        """
+        try:
+            return OpenAIClient(model_config)
+        except Exception as e:
+            print(f"创建 {model_id} 生成器失败: {e}")
+            return None
+
+    def update_generator_config(self, model_id: str, model_config: Dict[str, Any]) -> None:
+        """
+        更新生成器配置
+
+        Args:
+            model_id: 模型ID
+            model_config: 模型配置
+        """
+        if model_id in self._generators:
+            del self._generators[model_id]
+
+        if model_config.get('enabled', False) and model_config.get('api_key'):
+            try:
+                generator = self._create_generator(model_id, model_config)
+                if generator:
+                    self.register_generator(model_id, generator)
+                    if model_id == self._config.get('current_model'):
+                        self.set_current_generator(model_id)
+            except Exception as e:
+                print(f"更新生成器 {model_id} 失败: {e}")
 
     def convert_to_standard_format(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """

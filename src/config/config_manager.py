@@ -1,14 +1,15 @@
 """
-配置管理模块 - 使用单例模式管理API密钥和账号配置
+配置管理模块 - 支持多模型配置
 """
 import os
+import json
 from pathlib import Path
 from dotenv import load_dotenv
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 
 class ConfigManager:
-    """配置管理器 - 单例模式"""
+    """配置管理器 - 支持多模型配置"""
 
     _instance = None
     _initialized = False
@@ -23,11 +24,12 @@ class ConfigManager:
             return
         self._config: Dict[str, Any] = {}
         self._env_path: Optional[Path] = None
+        self._config_path: Optional[Path] = None
         self._initialized = True
 
     def load_config(self, env_path: Optional[str] = None) -> Dict[str, Any]:
         """
-        加载.env配置文件
+        加载配置文件
 
         Args:
             env_path: .env文件路径，默认为项目根目录下的.env
@@ -40,57 +42,77 @@ class ConfigManager:
         else:
             self._env_path = Path(__file__).parent.parent.parent / '.env'
 
+        self._config_path = Path(__file__).parent.parent.parent / 'config.json'
+
         if not self._env_path.exists():
-            raise FileNotFoundError(f"配置文件不存在: {self._env_path}")
+            self._env_path.touch()
 
         load_dotenv(self._env_path)
 
-        self._config = {
-            'openai': {
-                'api_key': os.getenv('OPENAI_API_KEY', ''),
-                'api_base': os.getenv('OPENAI_API_BASE', 'https://api.openai.com/v1'),
-                'model': os.getenv('OPENAI_MODEL', 'gpt-4')
+        self._config = self._load_default_config()
+
+        if self._config_path.exists():
+            try:
+                with open(self._config_path, 'r', encoding='utf-8') as f:
+                    saved_config = json.load(f)
+                    self._config.update(saved_config)
+            except Exception:
+                pass
+
+        return self._config
+
+    def _load_default_config(self) -> Dict[str, Any]:
+        """加载默认配置"""
+        return {
+            'models': {
+                'openai': {
+                    'name': 'OpenAI',
+                    'api_key': '',
+                    'api_base': 'https://api.openai.com/v1',
+                    'model': 'gpt-4',
+                    'enabled': True
+                },
+                'claude': {
+                    'name': 'Claude',
+                    'api_key': '',
+                    'api_base': 'https://api.anthropic.com/v1',
+                    'model': 'claude-3-opus-20240229',
+                    'enabled': False
+                },
+                'qianwen': {
+                    'name': '通义千问',
+                    'api_key': '',
+                    'api_base': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+                    'model': 'qwen-max',
+                    'enabled': False
+                },
+                'ernie': {
+                    'name': '文心一言',
+                    'api_key': '',
+                    'api_base': 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop',
+                    'model': 'ernie-bot-4',
+                    'enabled': False
+                }
             },
+            'current_model': 'openai',
             'app': {
                 'output_dir': os.getenv('OUTPUT_DIR', './output'),
                 'history_file': os.getenv('HISTORY_FILE', './history.json')
             }
         }
 
-        return self._config
-
     def save_config(self, config: Dict[str, Any]) -> None:
         """
-        保存配置到.env文件
+        保存配置到文件
 
         Args:
             config: 配置字典
         """
-        if not self._env_path:
-            self._env_path = Path(__file__).parent.parent.parent / '.env'
+        if not self._config_path:
+            self._config_path = Path(__file__).parent.parent.parent / 'config.json'
 
-        lines = []
-        if self._env_path.exists():
-            with open(self._env_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-
-        env_dict = {}
-        for line in lines:
-            if '=' in line and not line.strip().startswith('#'):
-                key, value = line.split('=', 1)
-                env_dict[key.strip()] = value.strip()
-
-        env_dict.update({
-            'OPENAI_API_KEY': config.get('openai', {}).get('api_key', ''),
-            'OPENAI_API_BASE': config.get('openai', {}).get('api_base', 'https://api.openai.com/v1'),
-            'OPENAI_MODEL': config.get('openai', {}).get('model', 'gpt-4'),
-            'OUTPUT_DIR': config.get('app', {}).get('output_dir', './output'),
-            'HISTORY_FILE': config.get('app', {}).get('history_file', './history.json')
-        })
-
-        with open(self._env_path, 'w', encoding='utf-8') as f:
-            for key, value in env_dict.items():
-                f.write(f"{key}={value}\n")
+        with open(self._config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
 
         self._config = config
 
@@ -99,7 +121,7 @@ class ConfigManager:
         获取配置值
 
         Args:
-            key: 配置键，支持点号分隔的嵌套键（如 'openai.api_key'）
+            key: 配置键，支持点号分隔的嵌套键（如 'models.openai.api_key'）
             default: 默认值
 
         Returns:
@@ -140,9 +162,49 @@ class ConfigManager:
 
         config[keys[-1]] = value
 
-    def get_openai_config(self) -> Dict[str, str]:
-        """获取OpenAI配置"""
-        return self.get('openai', {})
+    def get_models_config(self) -> Dict[str, Dict[str, Any]]:
+        """获取所有模型配置"""
+        return self.get('models', {})
+
+    def get_model_config(self, model_id: str) -> Optional[Dict[str, Any]]:
+        """
+        获取指定模型配置
+
+        Args:
+            model_id: 模型ID
+
+        Returns:
+            模型配置字典
+        """
+        return self.get(f'models.{model_id}')
+
+    def set_model_config(self, model_id: str, config: Dict[str, Any]) -> None:
+        """
+        设置指定模型配置
+
+        Args:
+            model_id: 模型ID
+            config: 模型配置
+        """
+        self.set(f'models.{model_id}', config)
+
+    def get_current_model(self) -> str:
+        """获取当前使用的模型ID"""
+        return self.get('current_model', 'openai')
+
+    def set_current_model(self, model_id: str) -> None:
+        """
+        设置当前使用的模型
+
+        Args:
+            model_id: 模型ID
+        """
+        self.set('current_model', model_id)
+
+    def get_enabled_models(self) -> List[str]:
+        """获取已启用的模型ID列表"""
+        models = self.get_models_config()
+        return [model_id for model_id, config in models.items() if config.get('enabled', False)]
 
     def get_app_config(self) -> Dict[str, str]:
         """获取应用配置"""

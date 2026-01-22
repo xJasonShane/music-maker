@@ -2,7 +2,7 @@
 主窗口 - Flet主界面
 """
 import flet as ft
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from .audio_player import AudioPlayer
 from .config_panel import ConfigPanel
 from ..config.config_manager import config_manager
@@ -31,6 +31,12 @@ class MusicMakerApp:
             min_lines=3,
             max_lines=5,
             expand=True
+        )
+        self._model_dropdown = ft.Dropdown(
+            label="AI模型",
+            options=self._get_model_options(),
+            value=self.config.get('current_model', 'openai'),
+            width=200
         )
         self._style_dropdown = ft.Dropdown(
             label="风格",
@@ -131,6 +137,7 @@ class MusicMakerApp:
                 ft.Text("创作区", size=16, weight=ft.FontWeight.BOLD),
                 self._prompt_field,
                 ft.Row([
+                    self._model_dropdown,
                     self._style_dropdown,
                     self._tempo_dropdown,
                     self._duration_dropdown,
@@ -196,6 +203,8 @@ class MusicMakerApp:
 
         self._update_generate_button()
 
+        self._model_dropdown.on_change = self._on_model_change
+
     def _on_generate_click(self, e) -> None:
         """生成按钮点击事件"""
         prompt = self._prompt_field.value
@@ -253,7 +262,52 @@ class MusicMakerApp:
         config_manager.save_config(new_config)
         self.config = new_config
         self.generator_manager.create_from_config(self.config)
+        self._update_model_options()
         self._update_status("配置已保存")
+
+    def _get_model_options(self) -> List[ft.dropdown.Option]:
+        """
+        获取模型选项
+
+        Returns:
+            模型选项列表
+        """
+        models_config = self.config.get('models', {})
+        options = []
+
+        for model_id, model_config in models_config.items():
+            if model_config.get('enabled', False):
+                model_name = model_config.get('name', model_id)
+                options.append(ft.dropdown.Option(key=model_id, text=model_name))
+
+        return options
+
+    def _update_model_options(self) -> None:
+        """更新模型选项"""
+        self._model_dropdown.options = self._get_model_options()
+        current_model = self.config.get('current_model', 'openai')
+        enabled_models = config_manager.get_enabled_models()
+
+        if current_model not in enabled_models and enabled_models:
+            self._model_dropdown.value = enabled_models[0]
+            config_manager.set_current_model(enabled_models[0])
+        elif current_model in enabled_models:
+            self._model_dropdown.value = current_model
+
+        if self.page:
+            self.page.update()
+
+    def _on_model_change(self, e) -> None:
+        """
+        模型切换事件
+
+        Args:
+            e: 事件对象
+        """
+        new_model = self._model_dropdown.value
+        config_manager.set_current_model(new_model)
+        self.config['current_model'] = new_model
+        self._update_status(f"已切换到 {new_model} 模型")
 
     def _on_nav_change(self, e) -> None:
         """导航栏切换事件"""
