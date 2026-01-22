@@ -5,7 +5,7 @@ import flet as ft
 from typing import Dict, Any, Optional, Callable
 
 
-class ConfigPanel(ft.UserControl):
+class ConfigPanel:
     """配置面板 - API密钥和账号管理"""
 
     def __init__(self, config: Dict[str, Any], on_save: Optional[Callable] = None):
@@ -16,9 +16,9 @@ class ConfigPanel(ft.UserControl):
             config: 当前配置
             on_save: 保存回调
         """
-        super().__init__()
         self.config = config
         self.on_save = on_save
+        self._page = None
 
         self._openai_api_key = ft.TextField(
             label="OpenAI API密钥",
@@ -43,8 +43,9 @@ class ConfigPanel(ft.UserControl):
             expand=True
         )
 
-    def build(self):
+    def build(self, page: ft.Page):
         """构建配置面板UI"""
+        self._page = page
         return ft.Container(
             content=ft.Column([
                 ft.Text("配置管理", size=20, weight=ft.FontWeight.BOLD),
@@ -60,12 +61,12 @@ class ConfigPanel(ft.UserControl):
                 ft.Row([
                     ft.ElevatedButton(
                         "保存配置",
-                        icon=ft.icons.SAVE,
+                        icon="save",
                         on_click=self._on_save_click
                     ),
                     ft.ElevatedButton(
                         "取消",
-                        icon=ft.icons.CANCEL,
+                        icon="cancel",
                         on_click=self._on_cancel_click
                     )
                 ], alignment=ft.MainAxisAlignment.END)
@@ -93,8 +94,8 @@ class ConfigPanel(ft.UserControl):
 
     def _on_cancel_click(self, e) -> None:
         """取消按钮点击事件"""
-        if self.page:
-            self.page.close_dialog()
+        if self._page:
+            self._page.close_dialog()
 
     def get_config(self) -> Dict[str, Any]:
         """

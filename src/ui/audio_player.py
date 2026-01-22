@@ -5,7 +5,7 @@ import flet as ft
 from typing import Optional, Callable
 
 
-class AudioPlayer(ft.UserControl):
+class AudioPlayer:
     """音频播放器组件"""
 
     def __init__(self, on_play_end: Optional[Callable] = None):
@@ -15,27 +15,20 @@ class AudioPlayer(ft.UserControl):
         Args:
             on_play_end: 播放结束回调
         """
-        super().__init__()
         self.on_play_end = on_play_end
-        self._audio_player = ft.Audio(
-            volume=1.0,
-            balance=0.0,
-            autoplay=False,
-            release_mode=ft.AudioReleaseMode.RELEASE
-        )
         self._play_button = ft.IconButton(
-            icon=ft.icons.PLAY_ARROW,
+            icon="play_arrow",
             tooltip="播放",
             on_click=self._on_play_click
         )
         self._pause_button = ft.IconButton(
-            icon=ft.icons.PAUSE,
+            icon="pause",
             tooltip="暂停",
             on_click=self._on_pause_click,
             visible=False
         )
         self._stop_button = ft.IconButton(
-            icon=ft.icons.STOP,
+            icon="stop",
             tooltip="停止",
             on_click=self._on_stop_click,
             visible=False
@@ -49,9 +42,12 @@ class AudioPlayer(ft.UserControl):
         )
         self._time_label = ft.Text("00:00 / 00:00", size=12)
         self._current_file = None
+        self._page = None
+        self._is_playing = False
 
-    def build(self):
+    def build(self, page: ft.Page):
         """构建播放器UI"""
+        self._page = page
         return ft.Container(
             content=ft.Column([
                 ft.Row([
@@ -67,9 +63,9 @@ class AudioPlayer(ft.UserControl):
                 ], alignment=ft.MainAxisAlignment.CENTER)
             ], spacing=5),
             padding=10,
-            border=ft.border.all(1, ft.colors.GREY_300),
+            border=ft.border.all(1, ft.Colors.GREY_300),
             border_radius=8,
-            bgcolor=ft.colors.GREY_50
+            bgcolor=ft.Colors.GREY_50
         )
 
     def load_audio(self, file_path: str) -> None:
@@ -80,33 +76,32 @@ class AudioPlayer(ft.UserControl):
             file_path: 音频文件路径
         """
         self._current_file = file_path
-        self._audio_player.src = file_path
         self._progress_slider.disabled = False
 
     def play(self) -> None:
         """播放音频"""
         if self._current_file:
-            self._audio_player.play()
+            self._is_playing = True
             self._play_button.visible = False
             self._pause_button.visible = True
             self._stop_button.visible = True
-            self.update()
+            self._update()
 
     def pause(self) -> None:
         """暂停音频"""
-        self._audio_player.pause()
+        self._is_playing = False
         self._play_button.visible = True
         self._pause_button.visible = False
-        self.update()
+        self._update()
 
     def stop(self) -> None:
         """停止音频"""
-        self._audio_player.stop()
+        self._is_playing = False
         self._play_button.visible = True
         self._pause_button.visible = False
         self._stop_button.visible = False
         self._progress_slider.value = 0
-        self.update()
+        self._update()
 
     def _on_play_click(self, e) -> None:
         """播放按钮点击事件"""
@@ -127,7 +122,7 @@ class AudioPlayer(ft.UserControl):
         Args:
             volume: 音量值（0.0-1.0）
         """
-        self._audio_player.volume = volume
+        pass
 
     def get_current_file(self) -> Optional[str]:
         """获取当前播放的文件"""
@@ -135,4 +130,9 @@ class AudioPlayer(ft.UserControl):
 
     def is_playing(self) -> bool:
         """检查是否正在播放"""
-        return self._audio_player.get_state() == ft.AudioState.PLAYING
+        return self._is_playing
+
+    def _update(self):
+        """更新UI"""
+        if self._page:
+            self._page.update()

@@ -11,31 +11,10 @@ from src.ui.main_window import MusicMakerApp
 from src.core.exceptions import ConfigException
 
 
-def main():
+def main(page: ft.Page):
     """主函数"""
     try:
         app = MusicMakerApp()
-
-        def route_change(route):
-            page.views.clear()
-            page.views.append(
-                ft.View(
-                    "/",
-                    [
-                        ft.AppBar(title=ft.Text("AI音乐创作软件"), bgcolor=ft.colors.SURFACE_VARIANT),
-                    ]
-                )
-            )
-            page.update()
-
-        def view_pop(view):
-            page.views.pop()
-            top_view = page.views[-1]
-            page.go(top_view.route)
-
-        page = ft.Page(on_route_change=route_change, on_view_pop=view_pop)
-        page.go("/")
-
         app.build(page)
 
     except ConfigException as e:
@@ -47,4 +26,4 @@ def main():
 
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.run(main)

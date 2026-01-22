@@ -17,6 +17,7 @@ class MusicMakerApp:
 
     def __init__(self):
         """初始化应用"""
+        self.page = None
         self.config = config_manager.load_config()
         self.generator_manager = GeneratorManager()
         self.generator_manager.create_from_config(self.config)
@@ -69,7 +70,6 @@ class MusicMakerApp:
         )
         self._generate_button = ft.ElevatedButton(
             "生成",
-            icon=ft.icons.AUTO_AWESOME,
             on_click=self._on_generate_click
         )
         self._result_text = ft.Text(
@@ -78,7 +78,7 @@ class MusicMakerApp:
             expand=True
         )
         self._audio_player = AudioPlayer()
-        self._status_bar = ft.Text("就绪", color=ft.colors.GREY_600)
+        self._status_bar = ft.Text("就绪", color=ft.Colors.GREY_600)
         self._progress_ring = ft.ProgressRing(visible=False)
 
     def build(self, page: ft.Page) -> None:
@@ -88,6 +88,7 @@ class MusicMakerApp:
         Args:
             page: Flet页面
         """
+        self.page = page
         page.title = "AI音乐创作软件"
         page.theme_mode = ft.ThemeMode.LIGHT
         page.window_width = 1200
@@ -98,7 +99,7 @@ class MusicMakerApp:
             title=ft.Text("AI音乐创作软件"),
             actions=[
                 ft.IconButton(
-                    icon=ft.icons.SETTINGS,
+                    icon="settings",
                     tooltip="配置",
                     on_click=self._on_config_click
                 )
@@ -112,13 +113,13 @@ class MusicMakerApp:
             min_extended_width=200,
             destinations=[
                 ft.NavigationRailDestination(
-                    icon=ft.icons.CREATE,
-                    selected_icon=ft.icons.CREATE,
+                    icon="create",
+                    selected_icon="create",
                     label="创作"
                 ),
                 ft.NavigationRailDestination(
-                    icon=ft.icons.HISTORY,
-                    selected_icon=ft.icons.HISTORY,
+                    icon="history",
+                    selected_icon="history",
                     label="历史"
                 )
             ],
@@ -137,9 +138,9 @@ class MusicMakerApp:
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
             ], spacing=10),
             padding=10,
-            border=ft.border.all(1, ft.colors.GREY_300),
+            border=ft.border.all(1, ft.Colors.GREY_300),
             border_radius=8,
-            bgcolor=ft.colors.WHITE
+            bgcolor=ft.Colors.WHITE
         )
 
         preview_area = ft.Container(
@@ -150,16 +151,16 @@ class MusicMakerApp:
                         self._result_text
                     ], scroll=ft.ScrollMode.AUTO),
                     height=300,
-                    border=ft.border.all(1, ft.colors.GREY_300),
+                    border=ft.border.all(1, ft.Colors.GREY_300),
                     border_radius=8,
                     padding=10
                 ),
-                self._audio_player
+                self._audio_player.build(page)
             ], spacing=10),
             padding=10,
-            border=ft.border.all(1, ft.colors.GREY_300),
+            border=ft.border.all(1, ft.Colors.GREY_300),
             border_radius=8,
-            bgcolor=ft.colors.WHITE
+            bgcolor=ft.Colors.WHITE
         )
 
         main_content = ft.Row([
@@ -187,7 +188,7 @@ class MusicMakerApp:
                             self._progress_ring
                         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                         padding=5,
-                        bgcolor=ft.colors.GREY_100
+                        bgcolor=ft.Colors.GREY_100
                     )
                 ], expand=True)
             ], expand=True)
@@ -232,7 +233,7 @@ class MusicMakerApp:
         config_panel = ConfigPanel(self.config, self._on_save_config)
         dialog = ft.AlertDialog(
             title=ft.Text("配置管理"),
-            content=config_panel,
+            content=config_panel.build(self.page),
             actions=[
                 ft.TextButton("关闭", on_click=lambda _: self.page.close_dialog())
             ],
@@ -299,7 +300,7 @@ class MusicMakerApp:
         self._update_status(f"错误: {message}")
         snack_bar = ft.SnackBar(
             content=ft.Text(message),
-            bgcolor=ft.colors.RED
+            bgcolor=ft.Colors.RED
         )
         self.page.snack_bar = snack_bar
         snack_bar.open = True
