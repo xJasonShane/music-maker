@@ -312,22 +312,9 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt  # 开发依赖
 ```
 
-### 代码规范
-
-- 遵循 PEP 8 规范
-- 使用类型注解
-- 编写单元测试
-- 添加必要的文档字符串
-
 ## 许可证
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
-
-## 联系方式
-
-- 项目主页：[GitHub Repository]
-- 问题反馈：[Issues]
-- 邮箱：[your-email@example.com]
+GPL-V3 License - 详见 [LICENSE](LICENSE) 文件
 
 ---
 
