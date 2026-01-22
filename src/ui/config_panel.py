@@ -37,25 +37,6 @@ class ConfigPanel(ft.UserControl):
             value=config.get('openai', {}).get('model', 'gpt-4'),
             expand=True
         )
-        self._netease_phone = ft.TextField(
-            label="网易云音乐手机号",
-            value=config.get('netease', {}).get('phone', ''),
-            expand=True
-        )
-        self._netease_password = ft.TextField(
-            label="网易云音乐密码",
-            value=config.get('netease', {}).get('password', ''),
-            password=True,
-            can_reveal_password=True,
-            expand=True
-        )
-        self._qishui_token = ft.TextField(
-            label="汽水音乐访问令牌",
-            value=config.get('qishui', {}).get('access_token', ''),
-            password=True,
-            can_reveal_password=True,
-            expand=True
-        )
         self._output_dir = ft.TextField(
             label="输出目录",
             value=config.get('app', {}).get('output_dir', './output'),
@@ -72,13 +53,6 @@ class ConfigPanel(ft.UserControl):
                 self._openai_api_key,
                 self._openai_api_base,
                 self._openai_model,
-                ft.Divider(),
-                ft.Text("网易云音乐配置", size=16, weight=ft.FontWeight.BOLD),
-                self._netease_phone,
-                self._netease_password,
-                ft.Divider(),
-                ft.Text("汽水音乐配置", size=16, weight=ft.FontWeight.BOLD),
-                self._qishui_token,
                 ft.Divider(),
                 ft.Text("应用配置", size=16, weight=ft.FontWeight.BOLD),
                 self._output_dir,
@@ -108,13 +82,6 @@ class ConfigPanel(ft.UserControl):
                 'api_base': self._openai_api_base.value,
                 'model': self._openai_model.value
             },
-            'netease': {
-                'phone': self._netease_phone.value,
-                'password': self._netease_password.value
-            },
-            'qishui': {
-                'access_token': self._qishui_token.value
-            },
             'app': {
                 'output_dir': self._output_dir.value,
                 'history_file': self.config.get('app', {}).get('history_file', './history.json')
@@ -141,13 +108,6 @@ class ConfigPanel(ft.UserControl):
                 'api_key': self._openai_api_key.value,
                 'api_base': self._openai_api_base.value,
                 'model': self._openai_model.value
-            },
-            'netease': {
-                'phone': self._netease_phone.value,
-                'password': self._netease_password.value
-            },
-            'qishui': {
-                'access_token': self._qishui_token.value
             },
             'app': {
                 'output_dir': self._output_dir.value,

@@ -51,13 +51,6 @@ class ConfigManager:
                 'api_base': os.getenv('OPENAI_API_BASE', 'https://api.openai.com/v1'),
                 'model': os.getenv('OPENAI_MODEL', 'gpt-4')
             },
-            'netease': {
-                'phone': os.getenv('NETEASE_PHONE', ''),
-                'password': os.getenv('NETEASE_PASSWORD', '')
-            },
-            'qishui': {
-                'access_token': os.getenv('QISHUI_ACCESS_TOKEN', '')
-            },
             'app': {
                 'output_dir': os.getenv('OUTPUT_DIR', './output'),
                 'history_file': os.getenv('HISTORY_FILE', './history.json')
@@ -91,9 +84,6 @@ class ConfigManager:
             'OPENAI_API_KEY': config.get('openai', {}).get('api_key', ''),
             'OPENAI_API_BASE': config.get('openai', {}).get('api_base', 'https://api.openai.com/v1'),
             'OPENAI_MODEL': config.get('openai', {}).get('model', 'gpt-4'),
-            'NETEASE_PHONE': config.get('netease', {}).get('phone', ''),
-            'NETEASE_PASSWORD': config.get('netease', {}).get('password', ''),
-            'QISHUI_ACCESS_TOKEN': config.get('qishui', {}).get('access_token', ''),
             'OUTPUT_DIR': config.get('app', {}).get('output_dir', './output'),
             'HISTORY_FILE': config.get('app', {}).get('history_file', './history.json')
         })
@@ -153,14 +143,6 @@ class ConfigManager:
     def get_openai_config(self) -> Dict[str, str]:
         """获取OpenAI配置"""
         return self.get('openai', {})
-
-    def get_netease_config(self) -> Dict[str, str]:
-        """获取网易云音乐配置"""
-        return self.get('netease', {})
-
-    def get_qishui_config(self) -> Dict[str, str]:
-        """获取汽水音乐配置"""
-        return self.get('qishui', {})
 
     def get_app_config(self) -> Dict[str, str]:
         """获取应用配置"""

@@ -120,11 +120,6 @@ class MusicMakerApp:
                     icon=ft.icons.HISTORY,
                     selected_icon=ft.icons.HISTORY,
                     label="历史"
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.icons.PUBLISH,
-                    selected_icon=ft.icons.PUBLISH,
-                    label="发布"
                 )
             ],
             on_change=self._on_nav_change
@@ -265,8 +260,6 @@ class MusicMakerApp:
             self._update_status("创作模式")
         elif e.control.selected_index == 1:
             self._update_status("历史记录")
-        elif e.control.selected_index == 2:
-            self._update_status("发布模式")
 
     def _update_generate_button(self) -> None:
         """更新生成按钮状态"""

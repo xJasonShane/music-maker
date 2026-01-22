@@ -1,6 +1,6 @@
 # AI音乐创作桌面软件
 
-基于 Python + Flet 开发的跨平台 AI 音乐创作桌面软件，支持调用 AI 模型生成歌词、旋律和编曲，并可一键发布到主流音乐平台。
+基于 Python + Flet 开发的跨平台 AI 音乐创作桌面软件，支持调用 AI 模型生成歌词、旋律和编曲。
 
 ## 快速开始
 
@@ -46,11 +46,6 @@ python main.py
   - 状态提示栏，实时反馈创作进度
   - 配置面板，灵活管理各项参数
 
-- **一键发布**
-  - 集成网易云音乐开放 API
-  - 集成汽水音乐开放 API
-  - 支持批量发布到多个平台
-
 - **创作管理**
   - 本地文件自动保存
   - 创作历史记录追踪
@@ -87,24 +82,22 @@ music-maker/
 ├── src/
 │   ├── config/              # 配置管理模块
 │   │   ├── __init__.py
-│   │   └── settings.py      # 配置加载与验证
+│   │   └── config_manager.py # 配置加载与验证
 │   ├── core/                # 核心模块
 │   │   ├── __init__.py
-│   │   └── exceptions.py    # 自定义异常类
+│   │   ├── exceptions.py    # 自定义异常类
+│   │   ├── file_manager.py  # 文件管理
+│   │   └── history_manager.py # 历史记录管理
 │   ├── ai/                  # AI 创作模块
 │   │   ├── __init__.py
-│   │   ├── lyrics.py        # 歌词生成
-│   │   ├── melody.py        # 旋律生成
-│   │   └── arrangement.py   # 编曲生成
-│   ├── publish/             # 发布模块
-│   │   ├── __init__.py
-│   │   ├── netease.py       # 网易云音乐接口
-│   │   └── qishui.py        # 汽水音乐接口
+│   │   ├── base.py          # 基础接口
+│   │   ├── generator.py     # 音乐生成器
+│   │   └── openai_client.py # OpenAI 客户端
 │   └── ui/                  # 界面模块
 │       ├── __init__.py
 │       ├── main_window.py   # 主窗口
-│       ├── preview.py       # 音频预览组件
-│       └── settings.py      # 设置面板
+│       ├── audio_player.py  # 音频播放器
+│       └── config_panel.py  # 配置面板
 ├── main.py                  # 程序入口
 ├── requirements.txt         # 依赖列表
 ├── .env.example            # 配置模板
@@ -157,11 +150,6 @@ OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_API_BASE=https://api.openai.com/v1
 OPENAI_MODEL=gpt-4
 
-# 音乐平台配置（可选）
-NETEASE_PHONE=your_phone_here
-NETEASE_PASSWORD=your_password_here
-QISHUI_ACCESS_TOKEN=your_access_token_here
-
 # 应用配置
 OUTPUT_DIR=./output
 HISTORY_FILE=./history.json
@@ -196,33 +184,10 @@ HISTORY_FILE=./history.json
    - 满意后点击"保存"
    - 文件将保存到 `output/` 目录
 
-### 发布流程
-
-1. **切换到发布标签页**
-
-2. **选择平台**
-   - 网易云音乐
-   - 汽水音乐
-
-3. **填写信息**
-   - 歌曲名称
-   - 歌手信息
-   - 封面图片（可选）
-   - 歌词（可选）
-
-4. **上传音频**
-   - 选择本地音频文件
-   - 支持格式：MP3, WAV, FLAC
-
-5. **发布**
-   - 点击"发布"按钮
-   - 等待上传完成
-
 ### 配置管理
 
 点击右上角设置按钮，可以配置：
 - OpenAI API 密钥和模型
-- 音乐平台账号信息
 - 输出目录路径
 - 默认创作参数
 
@@ -259,25 +224,16 @@ python build.py
 2. 尝试不同的 AI 模型（如 gpt-4-turbo）
 3. 多次生成，选择最佳版本
 
-### Q3: 发布失败怎么办？
+### Q3: 支持哪些音频格式？
 
-**A:** 常见原因：
-1. 平台账号未登录或已过期
-2. 音频文件格式不支持
-3. 网络连接问题
-4. 平台 API 限制
+**A:** 
+- 输出：MIDI（旋律）、WAV（完整编曲）
 
 ### Q4: 可以离线使用吗？
 
 **A:** 不可以。本软件需要调用在线 AI API，必须保持网络连接。
 
-### Q5: 支持哪些音频格式？
-
-**A:** 
-- 输入：MP3, WAV, FLAC, OGG
-- 输出：MIDI（旋律）、WAV（完整编曲）
-
-### Q6: 如何卸载？
+### Q5: 如何卸载？
 
 **A:** 
 - 开发模式：直接删除项目目录
@@ -290,12 +246,6 @@ python build.py
 1. 在 `src/ai/` 目录下创建新的模块
 2. 实现统一的接口规范
 3. 在配置文件中注册新模型
-
-### 添加新的发布平台
-
-1. 在 `src/publish/` 目录下创建新的模块
-2. 实现平台的 API 接口
-3. 在 UI 中添加对应的发布选项
 
 ## 贡献指南
 
