@@ -56,28 +56,45 @@ class ConfigPanel:
         )
 
         content = ft.Column([
-            ft.Text("配置管理", size=20, weight=ft.FontWeight.BOLD),
-            ft.Divider(),
-            ft.Text("模型配置", size=16, weight=ft.FontWeight.BOLD),
-            ft.Column(model_fields, spacing=10),
-            ft.Divider(),
-            ft.Text("应用配置", size=16, weight=ft.FontWeight.BOLD),
+            ft.Text("配置管理", size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+            ft.Divider(height=2, color=ft.Colors.BLUE_200),
+            ft.Container(
+                content=ft.Text("模型配置", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+                padding=ft.padding.only(bottom=10)
+            ),
+            ft.Column(model_fields, spacing=15),
+            ft.Divider(height=2, color=ft.Colors.BLUE_200),
+            ft.Container(
+                content=ft.Text("应用配置", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+                padding=ft.padding.only(bottom=10)
+            ),
             self._output_dir,
             self._history_file,
-            ft.Divider(),
+            ft.Divider(height=2, color=ft.Colors.BLUE_200),
             ft.Row([
                 ft.ElevatedButton(
-                    "保存配置",
-                    icon=ft.icons.Icons.SAVE,
-                    on_click=self._on_save_click
+                "保存配置",
+                icon=ft.icons.Icons.SAVE,
+                bgcolor=ft.Colors.BLUE_600,
+                color=ft.Colors.WHITE,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=8)
                 ),
-                ft.ElevatedButton(
-                    "取消",
-                    icon=ft.icons.Icons.CANCEL,
-                    on_click=self._on_cancel_click
-                )
+                on_click=self._on_save_click
+            ),
+            ft.Container(width=10),
+            ft.ElevatedButton(
+                "取消",
+                icon=ft.icons.Icons.CANCEL,
+                bgcolor=ft.Colors.GREY_400,
+                color=ft.Colors.WHITE,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=8)
+                ),
+                on_click=self._on_cancel_click
+            )
             ], alignment=ft.MainAxisAlignment.END)
-        ], scroll=ft.ScrollMode.AUTO, spacing=10)
+        ], scroll=ft.ScrollMode.AUTO, spacing=15)
 
         return ft.Container(
             content=content,
@@ -104,7 +121,8 @@ class ConfigPanel:
         enabled_switch = ft.Switch(
             label="启用",
             value=model_config.get('enabled', False),
-            on_change=lambda e, mid=model_id: self._on_model_enabled_change(mid, e.control.value)
+            on_change=lambda e, mid=model_id: self._on_model_enabled_change(mid, e.control.value),
+            active_color=ft.Colors.BLUE_600
         )
 
         api_key_field = ft.TextField(
@@ -112,24 +130,32 @@ class ConfigPanel:
             value=model_config.get('api_key', ''),
             password=True,
             can_reveal_password=True,
-            expand=True
+            expand=True,
+            border_radius=8,
+            filled=True
         )
 
         api_base_field = ft.TextField(
             label=f"{model_name} API地址",
             value=model_config.get('api_base', ''),
-            expand=True
+            expand=True,
+            border_radius=8,
+            filled=True
         )
 
         model_field = ft.TextField(
             label=f"{model_name} 模型名称",
             value=model_config.get('model', ''),
-            expand=True
+            expand=True,
+            border_radius=8,
+            filled=True
         )
 
         select_button = ft.IconButton(
             icon=ft.icons.Icons.CHECK_CIRCLE if is_current else ft.icons.Icons.RADIO_BUTTON_UNCHECKED,
             tooltip="选择此模型" if not is_current else "当前模型",
+            icon_color=ft.Colors.BLUE_600 if is_current else ft.Colors.GREY_400,
+            icon_size=28,
             on_click=lambda e, mid=model_id: self._on_model_select(mid),
             disabled=is_current
         )
@@ -144,20 +170,21 @@ class ConfigPanel:
         return ft.Container(
             content=ft.Column([
                 ft.Row([
-                    ft.Text(model_name, size=14, weight=ft.FontWeight.BOLD),
+                    ft.Text(model_name, size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
                     ft.Container(expand=True),
                     enabled_switch,
                     select_button
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                ft.Divider(height=1, color=ft.Colors.GREY_200),
                 ft.Column([
                     api_key_field,
                     api_base_field,
                     model_field
-                ], spacing=5)
-            ], spacing=5),
-            padding=10,
-            border=ft.border.all(2, ft.Colors.BLUE if is_current else ft.Colors.GREY_300),
-            border_radius=8,
+                ], spacing=10)
+            ], spacing=10),
+            padding=20,
+            border=ft.border.all(3, ft.Colors.BLUE_600 if is_current else ft.Colors.GREY_300),
+            border_radius=12,
             bgcolor=ft.Colors.BLUE_50 if is_current else ft.Colors.WHITE
         )
 

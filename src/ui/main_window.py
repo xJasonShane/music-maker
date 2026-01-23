@@ -44,7 +44,9 @@ class MusicMakerApp:
             label="AI模型",
             options=self._get_model_options(),
             value=self.config.get('current_model', 'openai'),
-            width=200
+            width=200,
+            border_radius=8,
+            filled=True
         )
         self._style_dropdown = ft.Dropdown(
             label="风格",
@@ -57,7 +59,9 @@ class MusicMakerApp:
                 ft.dropdown.Option("爵士")
             ],
             value="流行",
-            width=200
+            width=200,
+            border_radius=8,
+            filled=True
         )
         self._tempo_dropdown = ft.Dropdown(
             label="节拍 (BPM)",
@@ -69,7 +73,9 @@ class MusicMakerApp:
                 ft.dropdown.Option("180")
             ],
             value="120",
-            width=150
+            width=200,
+            border_radius=8,
+            filled=True
         )
         self._duration_dropdown = ft.Dropdown(
             label="时长 (秒)",
@@ -80,11 +86,21 @@ class MusicMakerApp:
                 ft.dropdown.Option("120")
             ],
             value="30",
-            width=150
+            width=200,
+            border_radius=8,
+            filled=True
         )
         self._generate_button = ft.ElevatedButton(
             "生成",
-            on_click=self._on_generate_click
+            icon=ft.icons.Icons.AUTO_AWESOME,
+            bgcolor=ft.Colors.BLUE_600,
+            color=ft.Colors.WHITE,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.padding.symmetric(horizontal=20, vertical=12)
+            ),
+            width=200,
+            height=50
         )
         self._result_text = ft.Text(
             "创作结果将在这里显示",
@@ -98,8 +114,19 @@ class MusicMakerApp:
         self._nav_rail = ft.NavigationRail(
             selected_index=0,
             label_type=ft.NavigationRailLabelType.ALL,
-            min_width=100,
+            min_width=120,
             min_extended_width=200,
+            bgcolor=ft.Colors.WHITE,
+            selected_label_text_style=ft.TextStyle(
+                size=14,
+                weight=ft.FontWeight.W_600,
+                color=ft.Colors.BLUE_600
+            ),
+            unselected_label_text_style=ft.TextStyle(
+                size=14,
+                weight=ft.FontWeight.W_400,
+                color=ft.Colors.GREY_700
+            ),
             destinations=[
                 ft.NavigationRailDestination(
                     icon=ft.icons.Icons.CREATE,
@@ -153,13 +180,28 @@ class MusicMakerApp:
         page.title = "音悦"
         page.theme_mode = ft.ThemeMode.LIGHT
         page.padding = 10
+        page.fonts = {
+            "Microsoft YaHei": "msyh.ttc",
+            "SimHei": "simhei.ttf"
+        }
+        page.theme = ft.Theme(
+            color_scheme=ft.ColorScheme(
+                primary=ft.Colors.BLUE_600,
+                on_primary=ft.Colors.WHITE,
+                surface=ft.Colors.GREY_50,
+                on_surface=ft.Colors.GREY_900,
+            )
+        )
 
         page.appbar = ft.AppBar(
-            title=ft.Text("音悦"),
+            title=ft.Text("音悦", size=20, weight=ft.FontWeight.BOLD),
+            bgcolor=ft.Colors.BLUE_600,
+            color=ft.Colors.WHITE,
             actions=[
                 ft.IconButton(
                     icon=ft.icons.Icons.SETTINGS,
                     tooltip="配置",
+                    icon_color=ft.Colors.WHITE,
                     on_click=self._on_config_click
                 )
             ]
@@ -167,39 +209,48 @@ class MusicMakerApp:
 
         creation_area = ft.Container(
             content=ft.Column([
-                ft.Text("创作区", size=16, weight=ft.FontWeight.BOLD),
+                ft.Text("创作区", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+                ft.Divider(height=1),
                 self._prompt_field,
-                ft.Row([
-                    self._model_dropdown,
-                    self._style_dropdown,
-                    self._tempo_dropdown,
-                    self._duration_dropdown,
-                    self._generate_button
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
-            ], spacing=10),
-            padding=10,
-            border=ft.border.all(1, ft.Colors.GREY_300),
-            border_radius=8,
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([
+                            self._model_dropdown,
+                            self._style_dropdown
+                        ], spacing=10, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                        ft.Row([
+                            self._tempo_dropdown,
+                            self._duration_dropdown
+                        ], spacing=10, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                        self._generate_button
+                    ], spacing=10),
+                )
+            ], spacing=15),
+            padding=20,
+            border=ft.border.all(2, ft.Colors.BLUE_200),
+            border_radius=12,
             bgcolor=ft.Colors.WHITE
         )
 
         preview_area = ft.Container(
             content=ft.Column([
-                ft.Text("预览区", size=16, weight=ft.FontWeight.BOLD),
+                ft.Text("预览区", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+                ft.Divider(height=1),
                 ft.Container(
                     content=ft.Column([
                         self._result_text
                     ], scroll=ft.ScrollMode.AUTO),
-                    height=300,
+                    height=400,
                     border=ft.border.all(1, ft.Colors.GREY_300),
                     border_radius=8,
-                    padding=10
+                    padding=15,
+                    bgcolor=ft.Colors.GREY_50
                 ),
                 self._audio_player.build(page)
-            ], spacing=10),
-            padding=10,
-            border=ft.border.all(1, ft.Colors.GREY_300),
-            border_radius=8,
+            ], spacing=15),
+            padding=20,
+            border=ft.border.all(2, ft.Colors.BLUE_200),
+            border_radius=12,
             bgcolor=ft.Colors.WHITE
         )
 
@@ -209,27 +260,30 @@ class MusicMakerApp:
         main_content = ft.Row([
             ft.Container(
                 content=creation_area,
-                width=400,
+                width=450,
                 expand=False
             ),
+            ft.VerticalDivider(width=2, color=ft.Colors.GREY_300),
             ft.Container(
                 content=preview_area,
                 expand=True
             )
-        ], expand=True)
+        ], expand=True, spacing=10)
 
         config_content = ft.Column([
             ft.Row([
-                ft.Text("配置管理", size=20, weight=ft.FontWeight.BOLD),
+                ft.Text("配置管理", size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
                 ft.Container(expand=True),
                 ft.IconButton(
                     icon=ft.icons.Icons.CLOSE,
+                    icon_color=ft.Colors.GREY_700,
+                    tooltip="关闭",
                     on_click=self._on_config_click
                 )
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            ft.Divider(),
+            ft.Divider(height=2, color=ft.Colors.BLUE_200),
             config_area
-        ], expand=True)
+        ], expand=True, spacing=10)
 
         self._main_content = ft.Column([
             main_content,
@@ -262,17 +316,18 @@ class MusicMakerApp:
         
         history_content = ft.Column([
             ft.Row([
-                ft.Text("历史记录", size=20, weight=ft.FontWeight.BOLD),
+                ft.Text("历史记录", size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
                 ft.Container(expand=True),
                 ft.IconButton(
                     icon=ft.icons.Icons.REFRESH,
                     tooltip="刷新",
+                    icon_color=ft.Colors.BLUE_600,
                     on_click=self._on_refresh_history
                 )
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            ft.Divider(),
-            ft.Column(history_items, scroll=ft.ScrollMode.AUTO, spacing=10, expand=True)
-        ], expand=True)
+            ft.Divider(height=2, color=ft.Colors.BLUE_200),
+            ft.Column(history_items, scroll=ft.ScrollMode.AUTO, spacing=15, expand=True)
+        ], expand=True, spacing=10)
 
         self._history_content = ft.Column([
             history_content,
@@ -562,23 +617,43 @@ class MusicMakerApp:
             item = ft.Container(
                 content=ft.Column([
                     ft.Row([
-                        ft.Text(f"#{record_id}", weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_700),
-                        ft.Text(f" | {type_text}", color=ft.Colors.GREY_600),
+                        ft.Container(
+                            content=ft.Text(f"#{record_id}", weight=ft.FontWeight.BOLD, size=16),
+                            padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                            bgcolor=ft.Colors.BLUE_100,
+                            border_radius=6
+                        ),
+                        ft.Container(
+                            content=ft.Text(type_text, size=14, weight=ft.FontWeight.W_500),
+                            padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                            bgcolor=ft.Colors.GREEN_100,
+                            border_radius=6
+                        ),
                         ft.Container(expand=True),
                         ft.Text(created_at[:19] if created_at else '', size=12, color=ft.Colors.GREY_500)
-                    ]),
-                    ft.Text(
-                        prompt[:100] + '...' if len(prompt) > 100 else prompt,
-                        size=14,
-                        color=ft.Colors.GREY_800
+                    ], alignment=ft.MainAxisAlignment.START),
+                    ft.Container(
+                        content=ft.Text(
+                            prompt[:120] + '...' if len(prompt) > 120 else prompt,
+                            size=15,
+                            color=ft.Colors.GREY_800,
+                            max_lines=2,
+                            overflow=ft.TextOverflow.ELLIPSIS
+                        ),
+                        padding=ft.padding.symmetric(vertical=5)
                     ),
                     ft.Row([
-                        ft.Text(f"风格: {style}", size=12, color=ft.Colors.GREY_600)
+                        ft.Container(
+                            content=ft.Text(f"风格: {style}", size=13, color=ft.Colors.GREY_700),
+                            padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                            bgcolor=ft.Colors.GREY_100,
+                            border_radius=4
+                        )
                     ])
-                ], spacing=5),
-                padding=15,
-                border=ft.border.all(1, ft.Colors.GREY_300),
-                border_radius=8,
+                ], spacing=8),
+                padding=20,
+                border=ft.border.all(2, ft.Colors.BLUE_100),
+                border_radius=12,
                 bgcolor=ft.Colors.WHITE,
                 on_click=lambda e, rid=record_id: self._on_history_item_click(e, rid)
             )
@@ -587,10 +662,15 @@ class MusicMakerApp:
         if not items:
             items.append(
                 ft.Container(
-                    content=ft.Row([
-                        ft.Text("暂无历史记录", color=ft.Colors.GREY_500)
-                    ], alignment=ft.MainAxisAlignment.CENTER),
-                    padding=30
+                    content=ft.Column([
+                        ft.Icon(ft.icons.Icons.HISTORY, size=64, color=ft.Colors.GREY_300),
+                        ft.Text("暂无历史记录", size=18, color=ft.Colors.GREY_500, weight=ft.FontWeight.W_500),
+                        ft.Text("开始创作后，您的作品将显示在这里", size=14, color=ft.Colors.GREY_400)
+                    ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10),
+                    padding=40,
+                    border=ft.border.all(2, ft.Colors.GREY_200),
+                    border_radius=12,
+                    bgcolor=ft.Colors.GREY_50
                 )
             )
         
@@ -611,17 +691,18 @@ class MusicMakerApp:
         
         history_content = ft.Column([
             ft.Row([
-                ft.Text("历史记录", size=20, weight=ft.FontWeight.BOLD),
+                ft.Text("历史记录", size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
                 ft.Container(expand=True),
                 ft.IconButton(
                     icon=ft.icons.Icons.REFRESH,
                     tooltip="刷新",
+                    icon_color=ft.Colors.BLUE_600,
                     on_click=self._on_refresh_history
                 )
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            ft.Divider(),
-            ft.Column(history_items, scroll=ft.ScrollMode.AUTO, spacing=10, expand=True)
-        ], expand=True)
+            ft.Divider(height=2, color=ft.Colors.BLUE_200),
+            ft.Column(history_items, scroll=ft.ScrollMode.AUTO, spacing=15, expand=True)
+        ], expand=True, spacing=10)
         
         self._history_content = ft.Column([
             history_content,
@@ -697,67 +778,92 @@ class MusicMakerApp:
                 ft.IconButton(
                     icon=ft.icons.Icons.ARROW_BACK,
                     tooltip="返回",
+                    icon_color=ft.Colors.BLUE_600,
                     on_click=self._on_back_to_history
                 ),
-                ft.Text(f"历史记录详情 #{record_id}", size=20, weight=ft.FontWeight.BOLD),
+                ft.Text(f"历史记录详情 #{record_id}", size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
                 ft.Container(expand=True)
             ], alignment=ft.MainAxisAlignment.START),
-            ft.Divider(),
+            ft.Divider(height=2, color=ft.Colors.BLUE_200),
             ft.Container(
                 content=ft.Column([
-                    ft.Text("创作信息", size=16, weight=ft.FontWeight.BOLD),
+                    ft.Text("创作信息", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+                    ft.Divider(height=1),
                     ft.Row([
-                        ft.Text("类型: ", weight=ft.FontWeight.BOLD),
-                        ft.Text(type_text)
-                    ]),
+                        ft.Container(
+                            content=ft.Text("类型", size=14, color=ft.Colors.GREY_600),
+                            width=80
+                        ),
+                        ft.Container(
+                            content=ft.Text(type_text, size=14, weight=ft.FontWeight.W_500),
+                            padding=ft.padding.symmetric(horizontal=12, vertical=6),
+                            bgcolor=ft.Colors.GREEN_100,
+                            border_radius=6
+                        )
+                    ], alignment=ft.MainAxisAlignment.START),
                     ft.Row([
-                        ft.Text("风格: ", weight=ft.FontWeight.BOLD),
-                        ft.Text(style)
-                    ]),
+                        ft.Container(
+                            content=ft.Text("风格", size=14, color=ft.Colors.GREY_600),
+                            width=80
+                        ),
+                        ft.Text(style, size=14, weight=ft.FontWeight.W_500)
+                    ], alignment=ft.MainAxisAlignment.START),
                     ft.Row([
-                        ft.Text("节拍: ", weight=ft.FontWeight.BOLD),
-                        ft.Text(f"{tempo} BPM")
-                    ]),
+                        ft.Container(
+                            content=ft.Text("节拍", size=14, color=ft.Colors.GREY_600),
+                            width=80
+                        ),
+                        ft.Text(f"{tempo} BPM", size=14, weight=ft.FontWeight.W_500)
+                    ], alignment=ft.MainAxisAlignment.START),
                     ft.Row([
-                        ft.Text("时长: ", weight=ft.FontWeight.BOLD),
-                        ft.Text(f"{duration} 秒")
-                    ]),
+                        ft.Container(
+                            content=ft.Text("时长", size=14, color=ft.Colors.GREY_600),
+                            width=80
+                        ),
+                        ft.Text(f"{duration} 秒", size=14, weight=ft.FontWeight.W_500)
+                    ], alignment=ft.MainAxisAlignment.START),
                     ft.Row([
-                        ft.Text("创建时间: ", weight=ft.FontWeight.BOLD),
-                        ft.Text(created_at[:19] if created_at else '')
-                    ])
-                ], spacing=8),
-                padding=15,
-                border=ft.border.all(1, ft.Colors.GREY_300),
-                border_radius=8,
+                        ft.Container(
+                            content=ft.Text("创建时间", size=14, color=ft.Colors.GREY_600),
+                            width=80
+                        ),
+                        ft.Text(created_at[:19] if created_at else '', size=14, color=ft.Colors.GREY_700)
+                    ], alignment=ft.MainAxisAlignment.START)
+                ], spacing=10),
+                padding=20,
+                border=ft.border.all(2, ft.Colors.BLUE_200),
+                border_radius=12,
                 bgcolor=ft.Colors.WHITE
             ),
             ft.Container(
                 content=ft.Column([
-                    ft.Text("提示词", size=16, weight=ft.FontWeight.BOLD),
-                    ft.Text(prompt, selectable=True)
-                ], spacing=8),
-                padding=15,
-                border=ft.border.all(1, ft.Colors.GREY_300),
-                border_radius=8,
+                    ft.Text("提示词", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+                    ft.Divider(height=1),
+                    ft.Text(prompt, selectable=True, size=15, color=ft.Colors.GREY_700)
+                ], spacing=10),
+                padding=20,
+                border=ft.border.all(2, ft.Colors.BLUE_200),
+                border_radius=12,
                 bgcolor=ft.Colors.WHITE
             ),
             ft.Container(
                 content=ft.Column([
-                    ft.Text("创作结果", size=16, weight=ft.FontWeight.BOLD),
+                    ft.Text("创作结果", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+                    ft.Divider(height=1),
                     ft.Container(
                         content=ft.Column([
-                            ft.Text(result_data, selectable=True)
+                            ft.Text(result_data, selectable=True, size=15, color=ft.Colors.GREY_700)
                         ], scroll=ft.ScrollMode.AUTO),
-                        height=300,
+                        height=400,
                         border=ft.border.all(1, ft.Colors.GREY_300),
                         border_radius=8,
-                        padding=10
+                        padding=15,
+                        bgcolor=ft.Colors.GREY_50
                     )
-                ], spacing=8),
-                padding=15,
-                border=ft.border.all(1, ft.Colors.GREY_300),
-                border_radius=8,
+                ], spacing=10),
+                padding=20,
+                border=ft.border.all(2, ft.Colors.BLUE_200),
+                border_radius=12,
                 bgcolor=ft.Colors.WHITE
             )
         ], spacing=15, scroll=ft.ScrollMode.AUTO, expand=True)
