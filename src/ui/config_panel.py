@@ -47,32 +47,33 @@ class ConfigPanel:
             expand=True
         )
 
+        content = ft.Column([
+            ft.Text("配置管理", size=20, weight=ft.FontWeight.BOLD),
+            ft.Divider(),
+            ft.Text("模型配置", size=16, weight=ft.FontWeight.BOLD),
+            ft.Column(model_fields, spacing=10),
+            ft.Divider(),
+            ft.Text("应用配置", size=16, weight=ft.FontWeight.BOLD),
+            self._output_dir,
+            self._history_file,
+            ft.Divider(),
+            ft.Row([
+                ft.ElevatedButton(
+                    "保存配置",
+                    icon=ft.icons.Icons.SAVE,
+                    on_click=self._on_save_click
+                ),
+                ft.ElevatedButton(
+                    "取消",
+                    icon=ft.icons.Icons.CANCEL,
+                    on_click=self._on_cancel_click
+                )
+            ], alignment=ft.MainAxisAlignment.END)
+        ], scroll=ft.ScrollMode.AUTO, spacing=10)
+
         return ft.Container(
-            content=ft.Column([
-                ft.Text("配置管理", size=20, weight=ft.FontWeight.BOLD),
-                ft.Divider(),
-                ft.Text("模型配置", size=16, weight=ft.FontWeight.BOLD),
-                ft.Column(model_fields, spacing=10),
-                ft.Divider(),
-                ft.Text("应用配置", size=16, weight=ft.FontWeight.BOLD),
-                self._output_dir,
-                self._history_file,
-                ft.Divider(),
-                ft.Row([
-                    ft.ElevatedButton(
-                        "保存配置",
-                        icon=ft.icons.Icons.SAVE,
-                        on_click=self._on_save_click
-                    ),
-                    ft.ElevatedButton(
-                        "取消",
-                        icon=ft.icons.Icons.CANCEL,
-                        on_click=self._on_cancel_click
-                    )
-                ], alignment=ft.MainAxisAlignment.END)
-            ], scroll=ft.ScrollMode.AUTO, spacing=10),
+            content=content,
             padding=20,
-            expand=True,
             width=600,
             height=500
         )
