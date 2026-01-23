@@ -68,6 +68,7 @@ python main.py
 | PyInstaller | - | 可执行文件打包 |
 
 **技术选型理由：**
+
 - **Flet**：基于 Flutter，提供原生性能和现代化 UI，支持三大平台
 - **librosa**：Python 音频处理领域的标准库，功能强大
 - **PyInstaller**：成熟的打包工具，兼容性好
@@ -110,12 +111,14 @@ music-maker/
 ### 1. 创建虚拟环境
 
 **Windows:**
+
 ```bash
 python -m venv venv
 venv\Scripts\activate
 ```
 
 **macOS/Linux:**
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate
@@ -128,6 +131,7 @@ pip install -r requirements.txt
 ```
 
 如果安装速度慢，可使用国内镜像：
+
 ```bash
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
@@ -135,11 +139,13 @@ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ### 3. 配置环境变量（可选）
 
 复制配置模板：
+
 ```bash
 cp .env.example .env
 ```
 
 编辑 `.env` 文件，配置应用参数：
+
 ```env
 # 应用配置
 OUTPUT_DIR=./output
@@ -153,6 +159,7 @@ HISTORY_FILE=./history.json
 ### 首次启动配置
 
 1. **启动程序**
+
    ```bash
    python main.py
    ```
@@ -248,28 +255,35 @@ HISTORY_FILE=./history.json
 
 - 每次创作都会自动保存到历史记录
 - 历史记录包含：提示词、模型、参数、结果
-- 可以通过导航栏的"历史"标签查看（功能开发中）
+- 通过导航栏的"历史"标签查看所有历史记录
+- 点击任意历史记录可查看详细信息（包含提示词和创作结果）
+- 支持刷新历史记录列表
+- 支持返回历史记录列表
 
 ## 支持的 AI 模型
 
 ### OpenAI
+
 - **模型**：GPT-4、GPT-3.5 Turbo
-- **API 地址**：https://api.openai.com/v1
+- **API 地址**：<https://api.openai.com/v1>
 - **特点**：功能强大，支持复杂任务
 
 ### Claude (Anthropic)
+
 - **模型**：Claude 3 Opus、Sonnet、Haiku
-- **API 地址**：https://api.anthropic.com/v1
+- **API 地址**：<https://api.anthropic.com/v1>
 - **特点**：上下文理解能力强
 
 ### 通义千问 (阿里云)
+
 - **模型**：Qwen-Max、Qwen-Plus、Qwen-Turbo
-- **API 地址**：https://dashscope.aliyuncs.com/compatible-mode/v1
+- **API 地址**：<https://dashscope.aliyuncs.com/compatible-mode/v1>
 - **特点**：中文优化，性价比高
 
 ### 文心一言 (百度)
+
 - **模型**：ERNIE-Bot 4、ERNIE-Bot 3.5
-- **API 地址**：https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop
+- **API 地址**：<https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop>
 - **特点**：中文理解深入
 
 ## 打包发布
@@ -281,6 +295,7 @@ python build.py
 ```
 
 打包完成后，可执行文件位于 `dist/` 目录：
+
 - Windows: `dist/music-maker.exe`
 - macOS: `dist/music-maker.app`
 - Linux: `dist/music-maker`
@@ -294,6 +309,7 @@ python build.py
 ### Q1: 首次启动需要配置什么？
 
 **A:** 首次启动需要：
+
 1. 点击右上角设置按钮
 2. 在设置面板中启用至少一个 AI 模型
 3. 填写该模型的 API 密钥
@@ -302,14 +318,16 @@ python build.py
 ### Q2: 如何获取 API 密钥？
 
 **A:** 各模型的 API 密钥获取方式：
-- **OpenAI**：访问 https://platform.openai.com/api-keys
-- **Claude**：访问 https://console.anthropic.com/
-- **通义千问**：访问 https://dashscope.console.aliyun.com/
-- **文心一言**：访问 https://cloud.baidu.com/product/wenxinworkshop
+
+- **OpenAI**：访问 <https://platform.openai.com/api-keys>
+- **Claude**：访问 <https://console.anthropic.com/>
+- **通义千问**：访问 <https://dashscope.console.aliyun.com/>
+- **文心一言**：访问 <https://cloud.baidu.com/product/wenxinworkshop>
 
 ### Q3: 提示"API 密钥无效"怎么办？
 
 **A:** 请检查：
+
 1. 设置面板中的 API 密钥是否正确
 2. API 密钥是否已激活且有余额
 3. 网络连接是否正常
@@ -318,6 +336,7 @@ python build.py
 ### Q4: 生成的音乐质量不理想？
 
 **A:** 可以尝试：
+
 1. 调整提示词，更详细地描述需求
 2. 尝试不同的 AI 模型
 3. 切换不同的风格和参数
@@ -326,6 +345,7 @@ python build.py
 ### Q5: 支持哪些音频格式？
 
 **A:**
+
 - 输出：MIDI（旋律）、WAV（完整编曲）
 
 ### Q6: 可以离线使用吗？
@@ -339,12 +359,14 @@ python build.py
 ### Q8: 如何卸载？
 
 **A:**
+
 - 开发模式：直接删除项目目录
 - 打包版本：删除可执行文件和 `output/`、`config.json`、`history.json` 文件
 
 ### Q9: 配置文件保存在哪里？
 
 **A:**
+
 - `config.json`：所有模型配置和应用设置（在项目根目录）
 - `history.json`：创作历史记录（在项目根目录）
 - `.env`：应用环境变量（可选，在项目根目录）
