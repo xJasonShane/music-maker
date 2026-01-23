@@ -23,6 +23,7 @@ class MusicMakerApp:
         self.generator_manager.create_from_config(self.config)
         self.file_manager = FileManager(self.config.get('app', {}).get('output_dir', './output'))
         self.history_manager = HistoryManager(self.config.get('app', {}).get('history_file', './history.json'))
+        self._config_panel_visible = False
 
         self._prompt_field = ft.TextField(
             label="提示词",
@@ -87,6 +88,26 @@ class MusicMakerApp:
         self._status_bar = ft.Text("就绪", color=ft.Colors.GREY_600)
         self._progress_ring = ft.ProgressRing(visible=False)
 
+        self._nav_rail = ft.NavigationRail(
+            selected_index=0,
+            label_type=ft.NavigationRailLabelType.ALL,
+            min_width=100,
+            min_extended_width=200,
+            destinations=[
+                ft.NavigationRailDestination(
+                    icon=ft.icons.Icons.CREATE,
+                    selected_icon=ft.icons.Icons.CREATE,
+                    label="创作"
+                ),
+                ft.NavigationRailDestination(
+                    icon=ft.icons.Icons.HISTORY,
+                    selected_icon=ft.icons.Icons.HISTORY,
+                    label="历史"
+                )
+            ],
+            on_change=self._on_nav_change
+        )
+
     def build(self, page: ft.Page) -> None:
         """
         构建主界面
@@ -110,26 +131,6 @@ class MusicMakerApp:
                     on_click=self._on_config_click
                 )
             ]
-        )
-
-        nav_rail = ft.NavigationRail(
-            selected_index=0,
-            label_type=ft.NavigationRailLabelType.ALL,
-            min_width=100,
-            min_extended_width=200,
-            destinations=[
-                ft.NavigationRailDestination(
-                    icon=ft.icons.Icons.CREATE,
-                    selected_icon=ft.icons.Icons.CREATE,
-                    label="创作"
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.icons.Icons.HISTORY,
-                    selected_icon=ft.icons.Icons.HISTORY,
-                    label="历史"
-                )
-            ],
-            on_change=self._on_nav_change
         )
 
         creation_area = ft.Container(
@@ -170,6 +171,9 @@ class MusicMakerApp:
             bgcolor=ft.Colors.WHITE
         )
 
+        config_panel = ConfigPanel(self.config, self._on_save_config)
+        config_area = config_panel.build(page)
+
         main_content = ft.Row([
             ft.Container(
                 content=creation_area,
@@ -182,28 +186,73 @@ class MusicMakerApp:
             )
         ], expand=True)
 
-        page.add(
+        config_content = ft.Column([
             ft.Row([
-                nav_rail,
-                ft.VerticalDivider(width=1),
-                ft.Column([
-                    main_content,
-                    ft.Container(
-                        content=ft.Row([
-                            self._status_bar,
-                            ft.Container(expand=True),
-                            self._progress_ring
-                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                        padding=5,
-                        bgcolor=ft.Colors.GREY_100
-                    )
-                ], expand=True)
-            ], expand=True)
-        )
+                ft.Text("配置管理", size=20, weight=ft.FontWeight.BOLD),
+                ft.Container(expand=True),
+                ft.IconButton(
+                    icon=ft.icons.Icons.CLOSE,
+                    on_click=self._on_config_click
+                )
+            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            ft.Divider(),
+            config_area
+        ], expand=True)
+
+        self._main_content = ft.Column([
+            main_content,
+            ft.Container(
+                content=ft.Row([
+                    self._status_bar,
+                    ft.Container(expand=True),
+                    self._progress_ring
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                padding=5,
+                bgcolor=ft.Colors.GREY_100
+            )
+        ], expand=True)
+
+        self._config_content = ft.Column([
+            config_content,
+            ft.Container(
+                content=ft.Row([
+                    self._status_bar,
+                    ft.Container(expand=True),
+                    self._progress_ring
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                padding=5,
+                bgcolor=ft.Colors.GREY_100
+            )
+        ], expand=True)
+
+        self._update_main_content()
 
         self._update_generate_button()
 
         self._model_dropdown.on_change = self._on_model_change
+
+    def _update_main_content(self) -> None:
+        """更新主内容区域"""
+        if self.page:
+            self.page.clean()
+            self.page.add(
+                ft.Row([
+                    self._nav_rail,
+                    ft.VerticalDivider(width=1),
+                    ft.Column([
+                        self._config_content if self._config_panel_visible else self._main_content,
+                        ft.Container(
+                            content=ft.Row([
+                                self._status_bar,
+                                ft.Container(expand=True),
+                                self._progress_ring
+                            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                            padding=5,
+                            bgcolor=ft.Colors.GREY_100
+                        )
+                    ], expand=True)
+                ], expand=True)
+            )
 
     def _on_generate_click(self, e) -> None:
         """生成按钮点击事件"""
@@ -239,18 +288,13 @@ class MusicMakerApp:
 
     def _on_config_click(self, e) -> None:
         """配置按钮点击事件"""
-        config_panel = ConfigPanel(self.config, self._on_save_config)
-        dialog = ft.AlertDialog(
-            title=ft.Text("配置管理"),
-            content=config_panel.build(self.page),
-            actions=[
-                ft.TextButton("关闭", on_click=lambda _: self.page.close_dialog())
-            ],
-            actions_alignment=ft.MainAxisAlignment.END
-        )
-        self.page.dialog = dialog
-        dialog.open = True
-        self.page.update()
+        try:
+            self._config_panel_visible = not self._config_panel_visible
+            self._update_main_content()
+        except Exception as ex:
+            import traceback
+            traceback.print_exc()
+            self._show_error(f"打开设置失败: {str(ex)}")
 
     def _on_save_config(self, new_config: Dict[str, Any]) -> None:
         """
