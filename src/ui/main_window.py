@@ -108,8 +108,6 @@ class MusicMakerApp:
             expand=True
         )
         self._audio_player = AudioPlayer()
-        self._status_bar = ft.Text("就绪", color=ft.Colors.GREY_600)
-        self._progress_ring = ft.ProgressRing(visible=False)
 
         self._nav_rail = ft.NavigationRail(
             selected_index=0,
@@ -285,31 +283,9 @@ class MusicMakerApp:
             config_area
         ], expand=True, spacing=10)
 
-        self._main_content = ft.Column([
-            main_content,
-            ft.Container(
-                content=ft.Row([
-                    self._status_bar,
-                    ft.Container(expand=True),
-                    self._progress_ring
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                padding=5,
-                bgcolor=ft.Colors.GREY_100
-            )
-        ], expand=True)
+        self._main_content = main_content
 
-        self._config_content = ft.Column([
-            config_content,
-            ft.Container(
-                content=ft.Row([
-                    self._status_bar,
-                    ft.Container(expand=True),
-                    self._progress_ring
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                padding=5,
-                bgcolor=ft.Colors.GREY_100
-            )
-        ], expand=True)
+        self._config_content = config_content
 
         history_records = self.history_manager.get_all_records()
         history_items = self._create_history_items(history_records)
@@ -329,30 +305,20 @@ class MusicMakerApp:
             ft.Column(history_items, scroll=ft.ScrollMode.AUTO, spacing=15, expand=True)
         ], expand=True, spacing=10)
 
-        self._history_content = ft.Column([
-            history_content,
-            ft.Container(
-                content=ft.Row([
-                    self._status_bar,
-                    ft.Container(expand=True),
-                    self._progress_ring
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                padding=5,
-                bgcolor=ft.Colors.GREY_100
-            )
-        ], expand=True)
+        self._history_content = history_content
 
         self._update_main_content()
 
-        self._update_generate_button()
+        self._generate_button.on_click = self._on_generate_click
+        self._prompt_field.on_change = self._update_generate_button
 
         self._model_dropdown.on_change = self._on_model_change
 
     def _update_main_content(self) -> None:
         """
         根据当前面板状态渲染主内容区域。
-        
-        根据 _config_panel_visible、_showing_history_detail 和 _history_panel_visible 的优先级选择要显示的面板（配置面板、历史详情、历史列表或主面板），清除页面并将导航栏、内容区以及底部的状态栏与进度环组合后添加到页面以更新界面显示。
+
+        根据 _config_panel_visible、_showing_history_detail 和 _history_panel_visible 的优先级选择要显示的面板（配置面板、历史详情、历史列表或主面板），清除页面并将导航栏、内容区添加到页面以更新界面显示。
         """
         if self.page:
             self.page.clean()
@@ -370,25 +336,14 @@ class MusicMakerApp:
                 ft.Row([
                     self._nav_rail,
                     ft.VerticalDivider(width=1),
-                    ft.Column([
-                        content,
-                        ft.Container(
-                            content=ft.Row([
-                                self._status_bar,
-                                ft.Container(expand=True),
-                                self._progress_ring
-                            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                            padding=5,
-                            bgcolor=ft.Colors.GREY_100
-                        )
-                    ], expand=True)
+                    content
                 ], expand=True)
             )
 
     def _on_generate_click(self, e) -> None:
         """
-        处理“生成”按钮的点击：验证提示词后使用当前样式请求生成歌词，展示结果并保存到历史或在失败时显示错误，同时在生成期间显示/隐藏加载状态并更新状态栏。
-        
+        处理"生成"按钮的点击：验证提示词后使用当前样式请求生成歌词，展示结果并保存到历史或在失败时显示错误。
+
         Parameters:
             e: 点击事件对象（来自 Flet 的事件），用于触发该操作的上下文。
         """
@@ -397,9 +352,6 @@ class MusicMakerApp:
         if not prompt or not prompt.strip():
             self._show_error("请输入提示词")
             return
-
-        self._show_loading(True)
-        self._update_status("正在生成...")
 
         try:
             result = self.generator_manager.generate_lyrics(
@@ -411,7 +363,6 @@ class MusicMakerApp:
             if result.get('success'):
                 self._result_text.value = result.get('data', '')
                 self._save_to_history('lyrics', prompt, result)
-                self._update_status("生成成功")
             else:
                 self._show_error("生成失败")
 
@@ -419,8 +370,6 @@ class MusicMakerApp:
             self._show_error(str(ex))
         except Exception as ex:
             self._show_error(f"发生错误: {str(ex)}")
-        finally:
-            self._show_loading(False)
 
     def _on_config_click(self, e) -> None:
         """
@@ -452,7 +401,6 @@ class MusicMakerApp:
         self.config = new_config
         self.generator_manager.create_from_config(self.config)
         self._update_model_options()
-        self._update_status("配置已保存")
 
     def _get_model_options(self) -> List[ft.dropdown.Option]:
         """
@@ -496,7 +444,6 @@ class MusicMakerApp:
         new_model = self._model_dropdown.value
         config_manager.set_current_model(new_model)
         self.config['current_model'] = new_model
-        self._update_status(f"已切换到 {new_model} 模型")
 
     def _on_nav_change(self, e) -> None:
         """
@@ -510,13 +457,11 @@ class MusicMakerApp:
             self._history_panel_visible = False
             self._config_panel_visible = False
             self._update_main_content()
-            self._update_status("创作模式")
         elif e.control.selected_index == 1:
             self._showing_history_detail = False
             self._history_panel_visible = True
             self._config_panel_visible = False
             self._update_main_content()
-            self._update_status("历史记录")
 
     def _update_generate_button(self) -> None:
         """
@@ -529,27 +474,6 @@ class MusicMakerApp:
         else:
             self._generate_button.disabled = True
 
-    def _show_loading(self, show: bool) -> None:
-        """
-        显示/隐藏加载状态
-
-        Args:
-            show: 是否显示
-        """
-        self._progress_ring.visible = show
-        self._generate_button.disabled = show
-        self.page.update()
-
-    def _update_status(self, message: str) -> None:
-        """
-        更新状态栏
-
-        Args:
-            message: 状态消息
-        """
-        self._status_bar.value = message
-        self.page.update()
-
     def _show_error(self, message: str) -> None:
         """
         显示错误消息
@@ -557,7 +481,6 @@ class MusicMakerApp:
         Args:
             message: 错误消息
         """
-        self._update_status(f"错误: {message}")
         snack_bar = ft.SnackBar(
             content=ft.Text(message),
             bgcolor=ft.Colors.RED
@@ -678,14 +601,13 @@ class MusicMakerApp:
 
     def _on_refresh_history(self, e) -> None:
         """
-        刷新并重建历史记录面板，更新界面和状态。
-        
-        从 history_manager 获取所有记录，使用 _create_history_items 构建历史项，重建 self._history_content，并调用 _update_main_content 刷新主界面；在开始与完成时更新状态栏消息。
-        
+        刷新并重建历史记录面板，更新界面。
+
+        从 history_manager 获取所有记录，使用 _create_history_items 构建历史项，重建 self._history_content，并调用 _update_main_content 刷新主界面。
+
         Parameters:
             e: 触发事件的对象（未在方法中使用，可为 None）。
         """
-        self._update_status("正在刷新历史记录...")
         history_records = self.history_manager.get_all_records()
         history_items = self._create_history_items(history_records)
         
@@ -704,21 +626,9 @@ class MusicMakerApp:
             ft.Column(history_items, scroll=ft.ScrollMode.AUTO, spacing=15, expand=True)
         ], expand=True, spacing=10)
         
-        self._history_content = ft.Column([
-            history_content,
-            ft.Container(
-                content=ft.Row([
-                    self._status_bar,
-                    ft.Container(expand=True),
-                    self._progress_ring
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                padding=5,
-                bgcolor=ft.Colors.GREY_100
-            )
-        ], expand=True)
+        self._history_content = history_content
         
         self._update_main_content()
-        self._update_status("历史记录已刷新")
 
     def _on_history_item_click(self, e, record_id: int) -> None:
         """
@@ -753,7 +663,7 @@ class MusicMakerApp:
         Side effects:
             - 构建并设置 self._history_detail_content 用于显示详情。
             - 将 self._showing_history_detail 置为 True。
-            - 调用 self._update_main_content() 重新渲染主界面并调用 self._update_status() 更新状态栏。
+            - 调用 self._update_main_content() 重新渲染主界面。
         """
         record_id = record.get('id', 0)
         prompt = record.get('prompt', '')
@@ -868,31 +778,18 @@ class MusicMakerApp:
             )
         ], spacing=15, scroll=ft.ScrollMode.AUTO, expand=True)
         
-        self._history_detail_content = ft.Column([
-            detail_content,
-            ft.Container(
-                content=ft.Row([
-                    self._status_bar,
-                    ft.Container(expand=True),
-                    self._progress_ring
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                padding=5,
-                bgcolor=ft.Colors.GREY_100
-            )
-        ], expand=True)
+        self._history_detail_content = detail_content
         
         self._showing_history_detail = True
         self._update_main_content()
-        self._update_status(f"查看历史记录 #{record_id}")
 
     def _on_back_to_history(self, e) -> None:
         """
-        返回历史记录列表视图并将状态栏设置为“历史记录”。
-        
+        返回历史记录列表视图。
+
         Parameters:
             e: 触发该操作的事件对象（可忽略）。
         """
         self._showing_history_detail = False
         self._history_panel_visible = True
         self._update_main_content()
-        self._update_status("历史记录")
