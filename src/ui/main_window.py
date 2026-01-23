@@ -13,7 +13,7 @@ from ..core.exceptions import MusicMakerException
 
 
 class MusicMakerApp:
-    """音乐创作应用主类"""
+    """音悦应用主类"""
 
     def __init__(self):
         """
@@ -122,14 +122,14 @@ class MusicMakerApp:
             page: Flet页面
         """
         self.page = page
-        page.title = "AI音乐创作软件"
+        page.title = "音悦"
         page.theme_mode = ft.ThemeMode.LIGHT
         page.window_width = 1200
         page.window_height = 800
         page.padding = 10
 
         page.appbar = ft.AppBar(
-            title=ft.Text("AI音乐创作软件"),
+            title=ft.Text("音悦"),
             actions=[
                 ft.IconButton(
                     icon=ft.icons.Icons.SETTINGS,

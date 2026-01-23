@@ -9,7 +9,7 @@ from pathlib import Path
 
 def build_executable():
     """打包为可执行文件"""
-    print("开始打包AI音乐创作软件...")
+    print("开始打包音悦...")
 
     project_root = Path(__file__).parent
     build_dir = project_root / "build"
@@ -25,7 +25,7 @@ def build_executable():
 
     pyinstaller_args = [
         "pyinstaller",
-        "--name=MusicMaker",
+        "--name=音悦",
         "--windowed",
         "--onefile",
         "--clean",
@@ -47,7 +47,7 @@ def build_executable():
     try:
         subprocess.run(pyinstaller_args, check=True)
         print(f"\n打包成功！")
-        print(f"可执行文件位置: {dist_dir / 'MusicMaker.exe'}")
+        print(f"可执行文件位置: {dist_dir / '音悦.exe'}")
 
         print("\n打包说明:")
         print("1. 可执行文件位于 dist/ 目录")

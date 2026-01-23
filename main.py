@@ -1,5 +1,5 @@
 """
-AI音乐创作桌面软件 - 主程序入口
+音悦 - AI音乐创作桌面软件 - 主程序入口
 """
 import sys
 import flet as ft

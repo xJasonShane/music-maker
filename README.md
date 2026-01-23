@@ -1,4 +1,4 @@
-# AI音乐创作桌面软件
+# 音悦 - AI音乐创作桌面软件
 
 基于 Python + Flet 开发的跨平台 AI 音乐创作桌面软件，支持调用多种 AI 模型生成歌词、旋律和编曲。
 
@@ -295,10 +295,9 @@ python build.py
 ```
 
 打包完成后，可执行文件位于 `dist/` 目录：
-
-- Windows: `dist/music-maker.exe`
-- macOS: `dist/music-maker.app`
-- Linux: `dist/music-maker`
+- Windows: `dist/音悦.exe`
+- macOS: `dist/音悦.app`
+- Linux: `dist/音悦`
 
 ### 分发说明
 
