@@ -142,14 +142,14 @@ class MusicMakerApp:
 
     def _center_window(self, window_width: int, window_height: int) -> tuple:
         """
-        计算窗口居中位置，支持多显示器
-
-        Args:
-            window_width: 窗口宽度
-            window_height: 窗口高度
-
+        计算并返回使窗口在当前屏幕居中的左上角坐标（支持多显示器）。
+        
+        Parameters:
+            window_width (int): 窗口宽度（像素）。
+            window_height (int): 窗口高度（像素）。
+        
         Returns:
-            (x, y) 窗口左上角坐标
+            tuple: (x, y) 窗口左上角坐标（像素）。若无法获取屏幕尺寸则返回默认坐标 (100, 100)。
         """
         try:
             root = tk.Tk()
@@ -169,10 +169,12 @@ class MusicMakerApp:
 
     def build(self, page: ft.Page) -> None:
         """
-        构建主界面
-
-        Args:
-            page: Flet页面
+        构建并初始化应用主界面、各功能面板与交互回调。
+        
+        初始化页面主题与外观，创建并布局创作区、预览区、配置面板与历史面板，生成历史项并将主要内容保存到实例属性（如 _main_content、_config_content、_history_content），并为生成按钮、提示词输入与模型下拉绑定相应的事件回调以响应用户交互。
+        
+        参数:
+            page (ft.Page): Flet 页面对象，用于挂载与配置应用的界面和交互。
         """
         self.page = page
         page.title = "音悦"
@@ -342,10 +344,10 @@ class MusicMakerApp:
 
     def _on_generate_click(self, e) -> None:
         """
-        处理"生成"按钮的点击：验证提示词后使用当前样式请求生成歌词，展示结果并保存到历史或在失败时显示错误。
-
+        处理“生成”按钮点击：校验提示词并使用当前风格请求生成歌词，成功时展示结果并保存到历史，失败时显示错误信息。
+        
         Parameters:
-            e: 点击事件对象（来自 Flet 的事件），用于触发该操作的上下文。
+            e: 触发事件对象（来自 Flet 的点击事件），仅用于事件上下文，函数内部不直接读取其属性。
         """
         prompt = self._prompt_field.value
 
@@ -373,12 +375,9 @@ class MusicMakerApp:
 
     def _on_config_click(self, e) -> None:
         """
-        切换配置面板的可见性并刷新主界面显示。
+        切换配置面板的可见性并刷新主界面。
         
-        如果在切换或刷新过程中发生异常，会记录异常并通过界面显示错误提示。
-        
-        Parameters:
-            e: 触发事件的对象（来自 UI 交互），未被直接使用。
+        在切换或刷新过程中若发生异常，会将异常信息输出并在界面上显示错误提示。
         """
         try:
             self._config_panel_visible = not self._config_panel_visible
@@ -392,7 +391,7 @@ class MusicMakerApp:
         """
         保存并应用新的应用配置。
         
-        将提供的配置持久化到配置存储，更新应用的运行时配置并重新初始化生成器实例，同时刷新可选模型列表并在状态栏显示“配置已保存”。
+        将配置持久化到配置存储，替换运行时配置，基于新配置重建生成器实例并刷新可用模型选项以同步 UI。
         
         Parameters:
             new_config (Dict[str, Any]): 要保存并应用的配置字典。
@@ -404,10 +403,10 @@ class MusicMakerApp:
 
     def _get_model_options(self) -> List[ft.dropdown.Option]:
         """
-        获取模型选项
-
+        生成当前配置中已启用模型的下拉选项列表。
+        
         Returns:
-            模型选项列表
+            List[ft.dropdown.Option]: 包含每个已启用模型的下拉选项；每项的 key 为模型 id，text 为模型 name（若未配置则使用 id）。
         """
         models_config = self.config.get('models', {})
         options = []
@@ -436,10 +435,9 @@ class MusicMakerApp:
 
     def _on_model_change(self, e) -> None:
         """
-        模型切换事件
-
-        Args:
-            e: 事件对象
+        处理模型下拉选择变更，将新的模型标识保存到运行时配置与持久化配置。
+        
+        会读取当前下拉控件的值并将其设置为应用的当前模型，从而更新运行时配置和持久化配置存储。
         """
         new_model = self._model_dropdown.value
         config_manager.set_current_model(new_model)
@@ -447,10 +445,10 @@ class MusicMakerApp:
 
     def _on_nav_change(self, e) -> None:
         """
-        切换主界面面板至“创作”或“历史”并更新状态。
+        根据导航栏选择在“创作”和“历史”面板间切换并刷新主界面。
         
         Parameters:
-            e: 事件对象，期望包含 `control.selected_index`，其值为 0 表示切换到“创作”面板，1 表示切换到“历史”面板。该方法将根据选择更新内部可见性标志、重建主内容并更新状态栏文本。
+            e: 事件对象，期望包含 `control.selected_index` 字段；`0` 表示切换到“创作”面板，`1` 表示切换到“历史”面板。
         """
         if e.control.selected_index == 0:
             self._showing_history_detail = False
@@ -476,10 +474,10 @@ class MusicMakerApp:
 
     def _show_error(self, message: str) -> None:
         """
-        显示错误消息
-
-        Args:
-            message: 错误消息
+        在页面底部以红色 SnackBar 显示错误消息并刷新页面。
+        
+        Parameters:
+            message (str): 要显示的错误文本。
         """
         snack_bar = ft.SnackBar(
             content=ft.Text(message),
@@ -601,12 +599,12 @@ class MusicMakerApp:
 
     def _on_refresh_history(self, e) -> None:
         """
-        刷新并重建历史记录面板，更新界面。
-
-        从 history_manager 获取所有记录，使用 _create_history_items 构建历史项，重建 self._history_content，并调用 _update_main_content 刷新主界面。
-
+        刷新历史记录面板并更新主界面显示。
+        
+        构建新的历史项并替换当前历史内容后触发界面刷新。
+        
         Parameters:
-            e: 触发事件的对象（未在方法中使用，可为 None）。
+            e: 触发事件的对象，方法内部未使用，可为 None。
         """
         history_records = self.history_manager.get_all_records()
         history_items = self._create_history_items(history_records)
@@ -785,10 +783,10 @@ class MusicMakerApp:
 
     def _on_back_to_history(self, e) -> None:
         """
-        返回历史记录列表视图。
-
+        切换回历史记录列表视图并刷新主界面。
+        
         Parameters:
-            e: 触发该操作的事件对象（可忽略）。
+            e: 触发操作的事件对象，未使用但保留以兼容回调签名。
         """
         self._showing_history_detail = False
         self._history_panel_visible = True
