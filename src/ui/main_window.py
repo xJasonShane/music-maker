@@ -2,6 +2,7 @@
 主窗口 - Flet主界面
 """
 import flet as ft
+import tkinter as tk
 from typing import Dict, Any, Optional, List
 from .audio_player import AudioPlayer
 from .config_panel import ConfigPanel
@@ -114,6 +115,33 @@ class MusicMakerApp:
             on_change=self._on_nav_change
         )
 
+    def _center_window(self, window_width: int, window_height: int) -> tuple:
+        """
+        计算窗口居中位置，支持多显示器
+
+        Args:
+            window_width: 窗口宽度
+            window_height: 窗口高度
+
+        Returns:
+            (x, y) 窗口左上角坐标
+        """
+        try:
+            root = tk.Tk()
+            root.withdraw()
+            
+            screen_width = root.winfo_screenwidth()
+            screen_height = root.winfo_screenheight()
+            
+            x = (screen_width - window_width) // 2
+            y = (screen_height - window_height) // 2
+            
+            root.destroy()
+            
+            return x, y
+        except Exception:
+            return 100, 100
+
     def build(self, page: ft.Page) -> None:
         """
         构建主界面
@@ -124,8 +152,6 @@ class MusicMakerApp:
         self.page = page
         page.title = "音悦"
         page.theme_mode = ft.ThemeMode.LIGHT
-        page.window_width = 1200
-        page.window_height = 800
         page.padding = 10
 
         page.appbar = ft.AppBar(
