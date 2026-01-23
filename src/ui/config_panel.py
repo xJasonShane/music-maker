@@ -105,15 +105,17 @@ class ConfigPanel:
 
     def _create_model_field(self, model_id: str, model_config: Dict[str, Any], current_model: str) -> ft.Container:
         """
-        创建模型配置字段
-
-        Args:
-            model_id: 模型ID
-            model_config: 模型配置
-            current_model: 当前选中的模型ID
-
+        构建并返回用于编辑单个模型配置的 UI 容器，同时在实例中注册该模型的控件引用。
+        
+        该容器包含模型名称行（显示启用开关与选择按钮）及用于编辑 API 密钥、API 地址和模型名称的文本字段。调用此方法会将创建的控件字典保存到 self._model_configs[model_id]，便于后续读取或保存配置。
+        
+        Parameters:
+            model_id (str): 模型的唯一标识符。
+            model_config (Dict[str, Any]): 模型的当前配置字典，支持键 'name', 'enabled', 'api_key', 'api_base', 'model'，用于初始化各控件的显示值。
+            current_model (str): 当前被选为默认/活动的模型 ID，用于确定是否将该项标记为当前模型并调整样式与选择按钮状态。
+        
         Returns:
-            配置容器
+            ft.Container: 包含模型配置字段和交互控件的 Flet 容器。
         """
         model_name = model_config.get('name', model_id)
         is_current = model_id == current_model
