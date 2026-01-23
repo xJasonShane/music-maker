@@ -24,7 +24,15 @@ class ConfigPanel:
         self._history_file = None
 
     def build(self, page: ft.Page):
-        """构建配置面板UI"""
+        """
+        构建并返回用于显示和编辑多模型配置的面板容器，并将传入的页面对象保存到实例以便后续刷新或关闭对话框。
+        
+        Parameters:
+            page (ft.Page): 父页面对象，方法会将其保存到 self._page 以便后续刷新界面和关闭对话框。
+        
+        Returns:
+            ft.Container: 包含模型配置区、应用配置字段和保存/取消按钮的容器，用于在界面中显示配置面板。
+        """
         self._page = page
 
         models_config = self.config.get('models', {})

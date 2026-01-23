@@ -16,7 +16,11 @@ class MusicMakerApp:
     """音乐创作应用主类"""
 
     def __init__(self):
-        """初始化应用"""
+        """
+        初始化 MusicMaker 应用的状态、管理器和主要界面控件。
+        
+        加载并保存应用配置，创建生成器、文件管理和历史记录管理器；初始化界面可见性状态标志；并构建主要的输入与显示控件，包括提示词输入、多项下拉选择（模型、风格、节拍、时长）、生成按钮、结果文本区域、音频播放器、状态栏、进度环和侧边导航栏。
+        """
         self.page = None
         self.config = config_manager.load_config()
         self.generator_manager = GeneratorManager()
@@ -264,7 +268,11 @@ class MusicMakerApp:
         self._model_dropdown.on_change = self._on_model_change
 
     def _update_main_content(self) -> None:
-        """更新主内容区域"""
+        """
+        根据当前面板状态渲染主内容区域。
+        
+        根据 _config_panel_visible、_showing_history_detail 和 _history_panel_visible 的优先级选择要显示的面板（配置面板、历史详情、历史列表或主面板），清除页面并将导航栏、内容区以及底部的状态栏与进度环组合后添加到页面以更新界面显示。
+        """
         if self.page:
             self.page.clean()
             
@@ -297,7 +305,12 @@ class MusicMakerApp:
             )
 
     def _on_generate_click(self, e) -> None:
-        """生成按钮点击事件"""
+        """
+        处理“生成”按钮的点击：验证提示词后使用当前样式请求生成歌词，展示结果并保存到历史或在失败时显示错误，同时在生成期间显示/隐藏加载状态并更新状态栏。
+        
+        Parameters:
+            e: 点击事件对象（来自 Flet 的事件），用于触发该操作的上下文。
+        """
         prompt = self._prompt_field.value
 
         if not prompt or not prompt.strip():
@@ -329,7 +342,14 @@ class MusicMakerApp:
             self._show_loading(False)
 
     def _on_config_click(self, e) -> None:
-        """配置按钮点击事件"""
+        """
+        切换配置面板的可见性并刷新主界面显示。
+        
+        如果在切换或刷新过程中发生异常，会记录异常并通过界面显示错误提示。
+        
+        Parameters:
+            e: 触发事件的对象（来自 UI 交互），未被直接使用。
+        """
         try:
             self._config_panel_visible = not self._config_panel_visible
             self._update_main_content()
@@ -340,10 +360,12 @@ class MusicMakerApp:
 
     def _on_save_config(self, new_config: Dict[str, Any]) -> None:
         """
-        保存配置
-
-        Args:
-            new_config: 新配置
+        保存并应用新的应用配置。
+        
+        将提供的配置持久化到配置存储，更新应用的运行时配置并重新初始化生成器实例，同时刷新可选模型列表并在状态栏显示“配置已保存”。
+        
+        Parameters:
+            new_config (Dict[str, Any]): 要保存并应用的配置字典。
         """
         config_manager.save_config(new_config)
         self.config = new_config
@@ -396,7 +418,12 @@ class MusicMakerApp:
         self._update_status(f"已切换到 {new_model} 模型")
 
     def _on_nav_change(self, e) -> None:
-        """导航栏切换事件"""
+        """
+        切换主界面面板至“创作”或“历史”并更新状态。
+        
+        Parameters:
+            e: 事件对象，期望包含 `control.selected_index`，其值为 0 表示切换到“创作”面板，1 表示切换到“历史”面板。该方法将根据选择更新内部可见性标志、重建主内容并更新状态栏文本。
+        """
         if e.control.selected_index == 0:
             self._showing_history_detail = False
             self._history_panel_visible = False
@@ -411,7 +438,11 @@ class MusicMakerApp:
             self._update_status("历史记录")
 
     def _update_generate_button(self) -> None:
-        """更新生成按钮状态"""
+        """
+        更新“生成”按钮的可用状态。
+        
+        当提示输入框包含至少一个非空白字符时启用生成按钮，否则禁用它。
+        """
         if self._prompt_field.value and self._prompt_field.value.strip():
             self._generate_button.disabled = False
         else:
@@ -456,12 +487,14 @@ class MusicMakerApp:
 
     def _save_to_history(self, result_type: str, prompt: str, result: Dict[str, Any]) -> None:
         """
-        保存到历史记录
-
-        Args:
-            result_type: 结果类型
-            prompt: 提示词
-            result: 结果
+        将一次创作结果保存为历史记录条目。
+        
+        记录包含字段：`type`（结果类型）、`prompt`（提示词）、`result`（生成结果）、`style`、`tempo` 和 `duration`（后面三项从当前 UI 选择读取）。该条目会被添加到 history_manager 的记录列表中。
+        
+        Parameters:
+            result_type (str): 本次结果的类型标识（例如 "lyrics"、"audio" 等）。
+            prompt (str): 用于生成的提示词文本。
+            result (Dict[str, Any]): 生成结果的具体数据（任意结构，按记录需要存储）。
         """
         record = {
             'type': result_type,
@@ -475,13 +508,15 @@ class MusicMakerApp:
 
     def _create_history_items(self, records: List[Dict[str, Any]]) -> List[ft.Container]:
         """
-        创建历史记录列表项
-
-        Args:
-            records: 历史记录列表
-
+        生成历史记录的 UI 列表项。
+        
+        将给定的历史记录列表转换为对应的 ft.Container 列表；每项显示记录编号、类型（中文）、创建时间、截断后的提示文本和风格，并在点击时调用 _on_history_item_click 打开记录详情。若 records 为空或无有效项，则返回一个显示“暂无历史记录”的占位容器。
+        
+        Parameters:
+            records (List[Dict[str, Any]]): 包含历史记录字段（如 'id', 'prompt', 'type', 'created_at', 'style'）的字典列表。
+        
         Returns:
-            历史记录项列表
+            List[ft.Container]: 对应的历史记录 UI 项列表，或包含单个占位项的列表（当没有记录时）。
         """
         items = []
         for record in records:
@@ -537,10 +572,12 @@ class MusicMakerApp:
 
     def _on_refresh_history(self, e) -> None:
         """
-        刷新历史记录
-
-        Args:
-            e: 事件对象
+        刷新并重建历史记录面板，更新界面和状态。
+        
+        从 history_manager 获取所有记录，使用 _create_history_items 构建历史项，重建 self._history_content，并调用 _update_main_content 刷新主界面；在开始与完成时更新状态栏消息。
+        
+        Parameters:
+            e: 触发事件的对象（未在方法中使用，可为 None）。
         """
         self._update_status("正在刷新历史记录...")
         history_records = self.history_manager.get_all_records()
@@ -578,11 +615,11 @@ class MusicMakerApp:
 
     def _on_history_item_click(self, e, record_id: int) -> None:
         """
-        点击历史记录项事件
-
-        Args:
-            e: 事件对象
-            record_id: 记录ID
+        响应历史记录项被点击，查找对应记录并显示其详细视图；若记录不存在则显示错误信息。
+        
+        Parameters:
+            e: 事件对象，表示点击事件（通常由 UI 传入）。
+            record_id (int): 要打开的历史记录的唯一标识符。
         """
         record = self.history_manager.get_record_by_id(record_id)
         if not record:
@@ -593,10 +630,23 @@ class MusicMakerApp:
 
     def _show_history_detail(self, record: Dict[str, Any]) -> None:
         """
-        显示历史记录详情
-
-        Args:
-            record: 历史记录
+        显示单条历史记录的详细视图并将其渲染到主界面。
+        
+        Parameters:
+            record (Dict[str, Any]): 包含历史记录字段的字典。常用字段：
+                - id: 记录编号
+                - prompt: 用于创作的提示词
+                - result: 结果对象，通常包含 `data` 字段（创作内容）
+                - type: 创作类型（如 'lyrics'、'melody'、'arrangement'）
+                - created_at: 创建时间字符串
+                - style: 风格描述
+                - tempo: 节拍（BPM）
+                - duration: 时长（秒）
+        
+        Side effects:
+            - 构建并设置 self._history_detail_content 用于显示详情。
+            - 将 self._showing_history_detail 置为 True。
+            - 调用 self._update_main_content() 重新渲染主界面并调用 self._update_status() 更新状态栏。
         """
         record_id = record.get('id', 0)
         prompt = record.get('prompt', '')
@@ -705,10 +755,10 @@ class MusicMakerApp:
 
     def _on_back_to_history(self, e) -> None:
         """
-        返回历史记录列表
-
-        Args:
-            e: 事件对象
+        返回历史记录列表视图并将状态栏设置为“历史记录”。
+        
+        Parameters:
+            e: 触发该操作的事件对象（可忽略）。
         """
         self._showing_history_detail = False
         self._history_panel_visible = True
