@@ -280,8 +280,8 @@ class MusicMakerApp:
                     content=ft.Column([
                         ft.Text("音频播放", size=14, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_700),
                         self._audio_player.build(page)
-                    ], spacing=5),
-                    padding=10,
+                    ], spacing=3),
+                    padding=8,
                     border=ft.border.all(1, ft.Colors.GREY_300),
                     border_radius=8,
                     bgcolor=ft.Colors.GREY_50
@@ -301,17 +301,17 @@ class MusicMakerApp:
                             expand=True,
                             border=ft.border.all(1, ft.Colors.GREY_300),
                             border_radius=8,
-                            padding=15,
+                            padding=10,
                             bgcolor=ft.Colors.WHITE
                         )
-                    ], spacing=5),
+                    ], spacing=3),
                     expand=True,
-                    padding=10,
+                    padding=8,
                     border=ft.border.all(1, ft.Colors.GREY_300),
                     border_radius=8,
                     bgcolor=ft.Colors.GREY_50
                 )
-            ], spacing=15, expand=True),
+            ], spacing=10, expand=True),
             padding=20,
             border=ft.border.all(2, ft.Colors.BLUE_200),
             border_radius=12,
