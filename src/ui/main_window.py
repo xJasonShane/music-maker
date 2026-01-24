@@ -286,32 +286,31 @@ class MusicMakerApp:
                     border_radius=8,
                     bgcolor=ft.Colors.GREY_50
                 ),
-                ft.Row([
-                    self._export_audio_button,
-                    self._export_lyrics_button,
-                    self._export_all_button
-                ], spacing=10, expand=True),
                 ft.Container(
-                    content=ft.Column([
-                        ft.Text("歌词预览", size=14, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_700),
-                        ft.Container(
-                            content=ft.Column([
-                                self._result_text
-                            ], scroll=ft.ScrollMode.AUTO),
-                            expand=True,
-                            border=ft.border.all(1, ft.Colors.GREY_300),
-                            border_radius=8,
-                            padding=10,
-                            bgcolor=ft.Colors.WHITE
-                        )
-                    ], spacing=3),
-                    expand=True,
+                    content=ft.Row([
+                        self._export_audio_button,
+                        self._export_lyrics_button,
+                        self._export_all_button
+                    ], spacing=10, expand=True),
                     padding=8,
                     border=ft.border.all(1, ft.Colors.GREY_300),
                     border_radius=8,
                     bgcolor=ft.Colors.GREY_50
-                )
-            ], spacing=10, expand=True),
+                ),
+                ft.Column([
+                    ft.Text("歌词预览", size=14, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_700),
+                    ft.Container(
+                        content=ft.Column([
+                            self._result_text
+                        ], scroll=ft.ScrollMode.AUTO),
+                        expand=True,
+                        border=ft.border.all(1, ft.Colors.GREY_300),
+                        border_radius=8,
+                        padding=16,
+                        bgcolor=ft.Colors.WHITE
+                    )
+                ], spacing=5, expand=True)
+            ], spacing=20, expand=True),
             padding=20,
             border=ft.border.all(2, ft.Colors.BLUE_200),
             border_radius=12,
