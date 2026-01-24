@@ -32,13 +32,20 @@ class MusicMakerApp:
         self._history_panel_visible = False
         self._showing_history_detail = False
 
+        self._paste_button = ft.IconButton(
+            icon=ft.icons.Icons.CONTENT_PASTE,
+            tooltip="粘贴",
+            icon_color=ft.Colors.BLUE_600,
+            on_click=self._on_paste_click
+        )
         self._prompt_field = ft.TextField(
             label="提示词",
             hint_text="输入创作提示词，例如：创作一首关于春天的流行歌曲",
             multiline=True,
-            min_lines=3,
-            max_lines=5,
-            expand=True
+            min_lines=10,
+            max_lines=14,
+            expand=True,
+            suffix=self._paste_button
         )
         self._model_dropdown = ft.Dropdown(
             label="AI模型",
@@ -99,8 +106,41 @@ class MusicMakerApp:
                 shape=ft.RoundedRectangleBorder(radius=8),
                 padding=ft.padding.symmetric(horizontal=20, vertical=12)
             ),
-            width=200,
+            expand=True,
             height=50
+        )
+        self._export_audio_button = ft.ElevatedButton(
+            "导出歌曲",
+            icon=ft.icons.Icons.AUDIO_FILE,
+            bgcolor=ft.Colors.GREEN_600,
+            color=ft.Colors.WHITE,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.padding.symmetric(horizontal=15, vertical=10)
+            ),
+            expand=True
+        )
+        self._export_lyrics_button = ft.ElevatedButton(
+            "导出歌词",
+            icon=ft.icons.Icons.LYRICS,
+            bgcolor=ft.Colors.ORANGE_600,
+            color=ft.Colors.WHITE,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.padding.symmetric(horizontal=15, vertical=10)
+            ),
+            expand=True
+        )
+        self._export_all_button = ft.ElevatedButton(
+            "一键导出",
+            icon=ft.icons.Icons.DOWNLOAD,
+            bgcolor=ft.Colors.PURPLE_600,
+            color=ft.Colors.WHITE,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.padding.symmetric(horizontal=15, vertical=10)
+            ),
+            expand=True
         )
         self._result_text = ft.Text(
             "创作结果将在这里显示",
@@ -238,16 +278,40 @@ class MusicMakerApp:
                 ft.Divider(height=1),
                 ft.Container(
                     content=ft.Column([
-                        self._result_text
-                    ], scroll=ft.ScrollMode.AUTO),
-                    height=400,
+                        ft.Text("音频播放", size=14, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_700),
+                        self._audio_player.build(page)
+                    ], spacing=5),
+                    padding=10,
                     border=ft.border.all(1, ft.Colors.GREY_300),
                     border_radius=8,
-                    padding=15,
                     bgcolor=ft.Colors.GREY_50
                 ),
-                self._audio_player.build(page)
-            ], spacing=15),
+                ft.Row([
+                    self._export_audio_button,
+                    self._export_lyrics_button,
+                    self._export_all_button
+                ], spacing=10, expand=True),
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text("歌词预览", size=14, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_700),
+                        ft.Container(
+                            content=ft.Column([
+                                self._result_text
+                            ], scroll=ft.ScrollMode.AUTO),
+                            expand=True,
+                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border_radius=8,
+                            padding=15,
+                            bgcolor=ft.Colors.WHITE
+                        )
+                    ], spacing=5),
+                    expand=True,
+                    padding=10,
+                    border=ft.border.all(1, ft.Colors.GREY_300),
+                    border_radius=8,
+                    bgcolor=ft.Colors.GREY_50
+                )
+            ], spacing=15, expand=True),
             padding=20,
             border=ft.border.all(2, ft.Colors.BLUE_200),
             border_radius=12,
@@ -313,8 +377,10 @@ class MusicMakerApp:
 
         self._generate_button.on_click = self._on_generate_click
         self._prompt_field.on_change = self._update_generate_button
-
         self._model_dropdown.on_change = self._on_model_change
+        self._export_audio_button.on_click = self._on_export_audio_click
+        self._export_lyrics_button.on_click = self._on_export_lyrics_click
+        self._export_all_button.on_click = self._on_export_all_click
 
     def _update_main_content(self) -> None:
         """
@@ -433,6 +499,28 @@ class MusicMakerApp:
         if self.page:
             self.page.update()
 
+    def _on_paste_click(self, e) -> None:
+        """
+        处理粘贴按钮点击事件，从剪贴板粘贴内容到提示词输入框。
+        """
+        try:
+            import tkinter as tk
+            root = tk.Tk()
+            root.withdraw()
+            clipboard_text = root.clipboard_get()
+            root.destroy()
+            
+            if clipboard_text:
+                current_text = self._prompt_field.value or ""
+                if current_text:
+                    self._prompt_field.value = current_text + "\n" + clipboard_text
+                else:
+                    self._prompt_field.value = clipboard_text
+                self._update_generate_button()
+                self.page.update()
+        except Exception:
+            pass
+
     def _on_model_change(self, e) -> None:
         """
         处理模型下拉选择变更，将新的模型标识保存到运行时配置与持久化配置。
@@ -482,6 +570,48 @@ class MusicMakerApp:
         snack_bar = ft.SnackBar(
             content=ft.Text(message),
             bgcolor=ft.Colors.RED
+        )
+        self.page.snack_bar = snack_bar
+        snack_bar.open = True
+        self.page.update()
+
+    def _on_export_audio_click(self, e) -> None:
+        """
+        处理导出歌曲按钮点击事件。
+        
+        Parameters:
+            e: 触发事件对象。
+        """
+        self._show_info("导出歌曲功能开发中...")
+
+    def _on_export_lyrics_click(self, e) -> None:
+        """
+        处理导出歌词按钮点击事件。
+        
+        Parameters:
+            e: 触发事件对象。
+        """
+        self._show_info("导出歌词功能开发中...")
+
+    def _on_export_all_click(self, e) -> None:
+        """
+        处理一键导出按钮点击事件。
+        
+        Parameters:
+            e: 触发事件对象。
+        """
+        self._show_info("一键导出功能开发中...")
+
+    def _show_info(self, message: str) -> None:
+        """
+        在页面底部以蓝色 SnackBar 显示信息消息并刷新页面。
+        
+        Parameters:
+            message (str): 要显示的信息文本。
+        """
+        snack_bar = ft.SnackBar(
+            content=ft.Text(message),
+            bgcolor=ft.Colors.BLUE_600
         )
         self.page.snack_bar = snack_bar
         snack_bar.open = True
