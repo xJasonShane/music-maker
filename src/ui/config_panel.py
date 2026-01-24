@@ -22,6 +22,8 @@ class ConfigPanel:
         self._model_configs: Dict[str, Dict[str, ft.Control]] = {}
         self._output_dir = None
         self._history_file = None
+        self._selected_category = "api"
+        self._selected_model = None
 
     def build(self, page: ft.Page):
         """
@@ -39,10 +41,42 @@ class ConfigPanel:
         current_model = self.config.get('current_model', 'openai')
         app_config = self.config.get('app', {})
 
-        model_fields = []
-        for model_id, model_config in models_config.items():
-            model_fields.append(self._create_model_field(model_id, model_config, current_model))
+        # 创建分类导航
+        category_nav = ft.Container(
+            content=ft.Column([
+                ft.Text("配置分类", size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+                ft.ElevatedButton(
+                    "API配置",
+                    icon=ft.icons.Icons.API,
+                    bgcolor=ft.Colors.BLUE_600 if self._selected_category == "api" else ft.Colors.GREY_200,
+                    color=ft.Colors.WHITE if self._selected_category == "api" else ft.Colors.GREY_700,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8)
+                    ),
+                    on_click=lambda e: self._on_category_change("api"),
+                    width=180,
+                    height=50
+                ),
+                ft.ElevatedButton(
+                    "软件设置",
+                    icon=ft.icons.Icons.SETTINGS,
+                    bgcolor=ft.Colors.BLUE_600 if self._selected_category == "software" else ft.Colors.GREY_200,
+                    color=ft.Colors.WHITE if self._selected_category == "software" else ft.Colors.GREY_700,
+                    style=ft.ButtonStyle(
+                        shape=ft.RoundedRectangleBorder(radius=8)
+                    ),
+                    on_click=lambda e: self._on_category_change("software"),
+                    width=180,
+                    height=50
+                )
+            ], spacing=10),
+            padding=20,
+            border=ft.border.all(1, ft.Colors.GREY_300),
+            border_radius=8,
+            bgcolor=ft.Colors.WHITE
+        )
 
+        # 创建API配置内容
         self._output_dir = ft.TextField(
             label="输出目录",
             value=app_config.get('output_dir', './output'),
@@ -55,53 +89,225 @@ class ConfigPanel:
             expand=True
         )
 
-        content = ft.Column([
-            ft.Text("配置管理", size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+        # 根据选择的分类显示不同的内容
+        if self._selected_category == "api":
+            content = self._create_api_config_content(models_config, current_model)
+        else:
+            content = self._create_software_config_content()
+        
+        # 创建内容区域
+        content_area = ft.Container(
+            content=content,
+            padding=20,
+            border=ft.border.all(1, ft.Colors.GREY_300),
+            border_radius=8,
+            bgcolor=ft.Colors.WHITE,
+            expand=True
+        )
+
+        # 创建主容器
+        main_content = ft.Row([
+            category_nav,
+            content_area
+        ], spacing=20, expand=True)
+
+        return ft.Container(
+            content=main_content,
+            padding=20,
+            width=800,
+            height=600,
+            bgcolor=ft.Colors.GREY_50
+        )
+
+    def _on_category_change(self, category: str):
+        """
+        分类切换
+        
+        Args:
+            category: 分类名称
+        """
+        self._selected_category = category
+        self._selected_model = None
+        self._refresh_ui()
+
+    def _create_api_config_content(self, models_config: Dict[str, Any], current_model: str) -> ft.Column:
+        """
+        创建API配置内容
+        
+        Args:
+            models_config: 模型配置
+            current_model: 当前模型
+        
+        Returns:
+            API配置内容
+        """
+        models_list = ft.Column([], spacing=10, width=200)
+        
+        for model_id, model_config in models_config.items():
+            model_name = model_config.get('name', model_id)
+            is_selected = self._selected_model == model_id
+            
+            model_btn = ft.ElevatedButton(
+                model_name,
+                icon=ft.icons.Icons.CHECK if is_selected else None,
+                bgcolor=ft.Colors.BLUE_600 if is_selected else ft.Colors.WHITE,
+                color=ft.Colors.WHITE if is_selected else ft.Colors.GREY_800,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=8),
+                    side=ft.border.all(1, ft.Colors.BLUE_600 if is_selected else ft.Colors.GREY_300)
+                ),
+                on_click=lambda e, mid=model_id: self._on_model_select(mid),
+                width=180,
+                height=40
+            )
+            models_list.controls.append(model_btn)
+        
+        # 创建模型配置详情
+        model_detail = ft.Container(
+            content=ft.Column([
+                ft.Text("模型配置", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+                ft.Divider(height=2, color=ft.Colors.BLUE_200),
+                ft.Text("请选择一个模型进行配置", size=14, color=ft.Colors.GREY_600)
+            ], spacing=15),
+            expand=True,
+            padding=20,
+            border=ft.border.all(1, ft.Colors.GREY_300),
+            border_radius=8,
+            bgcolor=ft.Colors.WHITE
+        )
+        
+        if self._selected_model:
+            model_config = models_config.get(self._selected_model, {})
+            model_detail = self._create_model_field(self._selected_model, model_config, current_model)
+        
+        # 创建保存按钮
+        save_button = ft.ElevatedButton(
+            "保存配置",
+            icon=ft.icons.Icons.SAVE,
+            bgcolor=ft.Colors.BLUE_600,
+            color=ft.Colors.WHITE,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8)
+            ),
+            on_click=self._on_save_click,
+            height=50
+        )
+        
+        # 创建API配置内容
+        api_content = ft.Column([
+            ft.Row([
+                models_list,
+                ft.Container(
+                    content=model_detail,
+                    expand=True
+                )
+            ], spacing=15, expand=True),
+            ft.Divider(height=2, color=ft.Colors.BLUE_200),
+            ft.Row([
+                save_button
+            ], alignment=ft.MainAxisAlignment.END)
+        ], spacing=20, scroll=ft.ScrollMode.AUTO)
+        
+        return api_content
+
+    def _create_software_config_content(self) -> ft.Column:
+        """
+        创建软件设置内容
+        
+        Returns:
+            软件设置内容
+        """
+        app_config = self.config.get('app', {})
+        
+        self._output_dir = ft.TextField(
+            label="输出目录",
+            value=app_config.get('output_dir', './output'),
+            expand=True
+        )
+
+        self._history_file = ft.TextField(
+            label="历史记录文件",
+            value=app_config.get('history_file', './history.json'),
+            expand=True
+        )
+        
+        # 创建保存按钮
+        save_button = ft.ElevatedButton(
+            "保存配置",
+            icon=ft.icons.Icons.SAVE,
+            bgcolor=ft.Colors.BLUE_600,
+            color=ft.Colors.WHITE,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8)
+            ),
+            on_click=self._on_save_click,
+            height=50
+        )
+        
+        # 创建检查更新按钮
+        check_update_button = ft.ElevatedButton(
+            "检查更新",
+            icon=ft.icons.Icons.UPDATE,
+            bgcolor=ft.Colors.GREEN_600,
+            color=ft.Colors.WHITE,
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=8)
+            ),
+            on_click=self._on_check_update_click,
+            height=50
+        )
+        
+        # 创建软件设置内容
+        software_content = ft.Column([
+            ft.Text("软件基础信息", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
             ft.Divider(height=2, color=ft.Colors.BLUE_200),
             ft.Container(
-                content=ft.Text("模型配置", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
-                padding=ft.padding.only(bottom=10)
+                content=ft.Column([
+                    ft.Text("版本: v1.0.0", size=14, color=ft.Colors.GREY_700),
+                    ft.Text("开发者: MusicMaker Team", size=14, color=ft.Colors.GREY_700),
+                    ft.Text("版权所有: © 2024 MusicMaker", size=14, color=ft.Colors.GREY_700)
+                ], spacing=5),
+                padding=15,
+                border=ft.border.all(1, ft.Colors.GREY_300),
+                border_radius=8,
+                bgcolor=ft.Colors.WHITE
             ),
-            ft.Column(model_fields, spacing=15),
+            ft.Text("应用配置", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
             ft.Divider(height=2, color=ft.Colors.BLUE_200),
-            ft.Container(
-                content=ft.Text("应用配置", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
-                padding=ft.padding.only(bottom=10)
-            ),
             self._output_dir,
             self._history_file,
             ft.Divider(height=2, color=ft.Colors.BLUE_200),
             ft.Row([
-                ft.ElevatedButton(
-                "保存配置",
-                icon=ft.icons.Icons.SAVE,
-                bgcolor=ft.Colors.BLUE_600,
-                color=ft.Colors.WHITE,
-                style=ft.ButtonStyle(
-                    shape=ft.RoundedRectangleBorder(radius=8)
-                ),
-                on_click=self._on_save_click
-            ),
-            ft.Container(width=10),
-            ft.ElevatedButton(
-                "取消",
-                icon=ft.icons.Icons.CANCEL,
-                bgcolor=ft.Colors.GREY_400,
-                color=ft.Colors.WHITE,
-                style=ft.ButtonStyle(
-                    shape=ft.RoundedRectangleBorder(radius=8)
-                ),
-                on_click=self._on_cancel_click
-            )
-            ], alignment=ft.MainAxisAlignment.END)
-        ], scroll=ft.ScrollMode.AUTO, spacing=15)
+                check_update_button,
+                save_button
+            ], spacing=15, alignment=ft.MainAxisAlignment.END)
+        ], spacing=20, scroll=ft.ScrollMode.AUTO)
+        
+        return software_content
 
-        return ft.Container(
-            content=content,
-            padding=20,
-            width=600,
-            height=500
-        )
+    def _on_check_update_click(self, e):
+        """
+        检查更新
+        
+        Args:
+            e: 事件对象
+        """
+        if self._page:
+            snack_bar = ft.SnackBar(
+                content=ft.Text("检查更新功能开发中..."),
+                bgcolor=ft.Colors.BLUE_600
+            )
+            self._page.snack_bar = snack_bar
+            snack_bar.open = True
+            self._page.update()
+
+    def _refresh_ui(self) -> None:
+        """
+        刷新UI
+        """
+        if self._page and hasattr(self._page, 'dialog') and self._page.dialog:
+            self._page.dialog.content = self.build(self._page)
+            self._page.update()
 
     def _create_model_field(self, model_id: str, model_config: Dict[str, Any], current_model: str) -> ft.Container:
         """
