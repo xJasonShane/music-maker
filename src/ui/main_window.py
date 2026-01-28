@@ -6,6 +6,7 @@ import flet as ft
 from typing import Dict, Any, Optional, List
 import logging
 import threading
+from pathlib import Path
 from .audio_player import AudioPlayer
 from .config_panel import ConfigPanel
 from ..config.config_manager import config_manager
@@ -36,6 +37,10 @@ class MusicMakerApp:
         self._history_panel_visible = False
         self._showing_history_detail = False
         self._history_detail_content = None
+        
+        # 存储当前生成的内容
+        self._current_lyrics = None
+        self._current_audio_path = None
 
         # 加载状态指示器
         self._loading_indicator = ft.ProgressRing(
@@ -161,7 +166,8 @@ class MusicMakerApp:
                 padding=ft.padding.symmetric(horizontal=18, vertical=12),
                 text_style=ft.TextStyle(size=14)
             ),
-            expand=True
+            expand=True,
+            disabled=True  # 初始禁用，生成内容后启用
         )
 
         self._export_lyrics_button = ft.ElevatedButton(
@@ -174,7 +180,8 @@ class MusicMakerApp:
                 padding=ft.padding.symmetric(horizontal=18, vertical=12),
                 text_style=ft.TextStyle(size=14)
             ),
-            expand=True
+            expand=True,
+            disabled=True  # 初始禁用，生成内容后启用
         )
 
         self._export_all_button = ft.ElevatedButton(
@@ -187,7 +194,8 @@ class MusicMakerApp:
                 padding=ft.padding.symmetric(horizontal=18, vertical=12),
                 text_style=ft.TextStyle(size=14)
             ),
-            expand=True
+            expand=True,
+            disabled=True  # 初始禁用，生成内容后启用
         )
 
         self._result_text = ft.Text(
@@ -565,10 +573,17 @@ class MusicMakerApp:
         self._hide_loading()
         
         if result.get('success'):
-            self._result_text.value = result.get('data', '')
+            self._current_lyrics = result.get('data', '')
+            self._result_text.value = self._current_lyrics
             self._save_to_history('lyrics', self._prompt_field.value, result)
+            
+            # 启用导出按钮
+            self._export_lyrics_button.disabled = False
+            self._export_all_button.disabled = False
+            
             logger.info("歌词生成成功")
             self._show_success("生成成功")
+            self.page.update()
         else:
             self._show_error("生成失败")
 
@@ -762,8 +777,8 @@ class MusicMakerApp:
         Parameters:
             e: 触发事件对象。
         """
-        if not self._result_text.value or self._result_text.value == "创作结果将在这里显示":
-            self._show_error("没有可导出的歌词")
+        if not self._current_lyrics:
+            self._show_error("没有可导出的歌词，请先生成歌词")
             return
         
         try:
@@ -772,8 +787,11 @@ class MusicMakerApp:
             filename = f"lyrics_{timestamp}.txt"
             filepath = self.file_manager.output_dir / filename
             
+            # 确保输出目录存在
+            self.file_manager.output_dir.mkdir(parents=True, exist_ok=True)
+            
             with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(self._result_text.value)
+                f.write(self._current_lyrics)
             
             logger.info(f"歌词已导出到: {filepath}")
             self._show_success(f"歌词已保存: {filename}")
@@ -788,7 +806,29 @@ class MusicMakerApp:
         Parameters:
             e: 触发事件对象。
         """
-        self._show_info("一键导出功能开发中...")
+        if not self._current_lyrics:
+            self._show_error("没有可导出的内容，请先生成")
+            return
+        
+        try:
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # 确保输出目录存在
+            self.file_manager.output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 导出歌词
+            lyrics_filename = f"lyrics_{timestamp}.txt"
+            lyrics_filepath = self.file_manager.output_dir / lyrics_filename
+            
+            with open(lyrics_filepath, 'w', encoding='utf-8') as f:
+                f.write(self._current_lyrics)
+            
+            logger.info(f"一键导出完成: {lyrics_filename}")
+            self._show_success(f"导出完成: {lyrics_filename}")
+        except Exception as ex:
+            logger.error(f"一键导出失败: {ex}", exc_info=True)
+            self._show_error(f"导出失败: {str(ex)}")
 
     def _show_info(self, message: str) -> None:
         """
