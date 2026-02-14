@@ -6,6 +6,7 @@ import flet as ft
 from typing import Dict, Any, Optional, List
 import logging
 import threading
+from datetime import datetime
 from pathlib import Path
 from .audio_player import AudioPlayer
 from .config_panel import ConfigPanel
@@ -465,13 +466,13 @@ class MusicMakerApp:
                     style=self._style_dropdown.value,
                     language='中文'
                 )
-                self.page.run_thread(lambda: self._on_generate_complete(result))
+                self.page.invoke(lambda: self._on_generate_complete(result))
             except MusicMakerException as ex:
                 logger.error(f"生成失败: {ex}")
-                self.page.run_thread(lambda: self._on_generate_error(str(ex)))
+                self.page.invoke(lambda: self._on_generate_error(str(ex)))
             except Exception as ex:
                 logger.error(f"生成过程中发生错误: {ex}", exc_info=True)
-                self.page.run_thread(lambda: self._on_generate_error(f"发生错误: {str(ex)}"))
+                self.page.invoke(lambda: self._on_generate_error(f"发生错误: {str(ex)}"))
         
         thread = threading.Thread(target=generate)
         thread.daemon = True
@@ -669,8 +670,7 @@ class MusicMakerApp:
             return
         
         try:
-            import datetime
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"lyrics_{timestamp}.txt"
             filepath = self.file_manager.output_dir / filename
             
@@ -692,8 +692,7 @@ class MusicMakerApp:
             return
         
         try:
-            import datetime
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             self.file_manager.output_dir.mkdir(parents=True, exist_ok=True)
             
             lyrics_filename = f"lyrics_{timestamp}.txt"

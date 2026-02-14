@@ -240,15 +240,14 @@ class GeneratorManager:
         has_valid_generator = False
         
         for model_id, model_config in models_config.items():
-            if not model_config.get('enabled', False):
-                if model_config.get('api_key'):
-                    try:
-                        generator = self._create_generator(model_id, model_config)
-                        if generator:
-                            self.register_generator(model_id, generator)
-                            has_valid_generator = True
-                    except Exception as e:
-                        print(f"创建生成器 {model_id} 失败: {e}")
+            if model_config.get('enabled', False) and model_config.get('api_key'):
+                try:
+                    generator = self._create_generator(model_id, model_config)
+                    if generator:
+                        self.register_generator(model_id, generator)
+                        has_valid_generator = True
+                except Exception as e:
+                    print(f"创建生成器 {model_id} 失败: {e}")
         
         if not has_valid_generator:
             mock_config = {'name': '演示模式'}

@@ -342,19 +342,63 @@ class ConfigPanel:
             test_status_icon.name = ft.icons.Icons.PENDING
             self._page.update()
             
-            # 简单验证（不阻塞UI）
-            if api_key_field.value:
-                test_status_text.value = "连接成功"
-                test_status_text.color = ft.Colors.GREEN_600
-                test_status_icon.name = ft.icons.Icons.CHECK_CIRCLE
-                self._test_status[model_id] = "success"
-            else:
+            api_key = api_key_field.value
+            api_base = api_base_field.value or 'https://api.openai.com/v1'
+            
+            if not api_key:
                 test_status_text.value = "连接失败: API密钥不能为空"
                 test_status_text.color = ft.Colors.RED_600
                 test_status_icon.name = ft.icons.Icons.ERROR
                 self._test_status[model_id] = "failed"
+                self._page.update()
+                return
             
-            self._page.update()
+            import threading
+            import requests
+            
+            def test_api():
+                try:
+                    headers = {
+                        'Authorization': f'Bearer {api_key}',
+                        'Content-Type': 'application/json'
+                    }
+                    response = requests.get(
+                        f"{api_base.rstrip('/')}/models",
+                        headers=headers,
+                        timeout=10
+                    )
+                    
+                    if response.status_code == 200:
+                        self._page.invoke(lambda: _on_test_success())
+                    elif response.status_code == 401:
+                        self._page.invoke(lambda: _on_test_failed("API密钥无效"))
+                    else:
+                        self._page.invoke(lambda: _on_test_failed(f"HTTP错误: {response.status_code}"))
+                        
+                except requests.exceptions.Timeout:
+                    self._page.invoke(lambda: _on_test_failed("连接超时"))
+                except requests.exceptions.ConnectionError:
+                    self._page.invoke(lambda: _on_test_failed("无法连接到服务器"))
+                except Exception as ex:
+                    self._page.invoke(lambda: _on_test_failed(f"测试失败: {str(ex)}"))
+            
+            def _on_test_success():
+                test_status_text.value = "连接成功"
+                test_status_text.color = ft.Colors.GREEN_600
+                test_status_icon.name = ft.icons.Icons.CHECK_CIRCLE
+                self._test_status[model_id] = "success"
+                self._page.update()
+            
+            def _on_test_failed(msg: str):
+                test_status_text.value = f"连接失败: {msg}"
+                test_status_text.color = ft.Colors.RED_600
+                test_status_icon.name = ft.icons.Icons.ERROR
+                self._test_status[model_id] = "failed"
+                self._page.update()
+            
+            thread = threading.Thread(target=test_api)
+            thread.daemon = True
+            thread.start()
         
         # 保存控件引用
         self._model_configs[model_id] = {

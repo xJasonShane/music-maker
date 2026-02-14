@@ -2,6 +2,8 @@
 历史记录管理模块 - 管理创作历史记录
 """
 import json
+import time
+import random
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -20,7 +22,15 @@ class HistoryManager:
         """
         self.history_file = Path(history_file)
         self._history: List[Dict[str, Any]] = []
+        self._next_id = 1
         self._load_history()
+        self._next_id = self._get_max_id() + 1
+
+    def _get_max_id(self) -> int:
+        """获取当前最大ID"""
+        if not self._history:
+            return 0
+        return max((r.get('id', 0) for r in self._history), default=0)
 
     def _load_history(self) -> None:
         """加载历史记录"""
@@ -48,7 +58,8 @@ class HistoryManager:
         Args:
             record: 记录字典，包含创作信息
         """
-        record['id'] = len(self._history) + 1
+        record['id'] = self._next_id
+        self._next_id += 1
         record['created_at'] = datetime.now().isoformat()
 
         self._history.insert(0, record)

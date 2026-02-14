@@ -3,9 +3,13 @@
 """
 import os
 import json
+import logging
+import threading
 from pathlib import Path
 from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigManager:
@@ -13,11 +17,13 @@ class ConfigManager:
 
     _instance = None
     _initialized = False
+    _lock = threading.Lock()
 
     def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+            return cls._instance
 
     def __init__(self):
         if self._initialized:
@@ -56,8 +62,12 @@ class ConfigManager:
                 with open(self._config_path, 'r', encoding='utf-8') as f:
                     saved_config = json.load(f)
                     self._config.update(saved_config)
-            except Exception:
-                pass
+            except json.JSONDecodeError as e:
+                logger.warning(f"配置文件JSON格式错误，使用默认配置: {e}")
+            except PermissionError as e:
+                logger.warning(f"无法读取配置文件，使用默认配置: {e}")
+            except Exception as e:
+                logger.warning(f"加载配置文件失败，使用默认配置: {e}")
 
         return self._config
 

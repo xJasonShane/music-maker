@@ -2,6 +2,8 @@
 OpenAI API客户端 - 封装OpenAI API调用
 """
 import time
+import json
+import re
 import requests
 from typing import Dict, Any, Optional
 from .base import BaseAIGenerator
@@ -46,6 +48,7 @@ class OpenAIClient(BaseAIGenerator):
             'Content-Type': 'application/json'
         }
 
+        last_error = None
         for attempt in range(self.max_retries):
             try:
                 response = requests.post(
@@ -62,14 +65,20 @@ class OpenAIClient(BaseAIGenerator):
                 return response.json()
 
             except requests.exceptions.Timeout:
-                if attempt == self.max_retries - 1:
-                    raise NetworkException("请求超时，请检查网络连接")
-                time.sleep(2 ** attempt)
+                last_error = NetworkException("请求超时，请检查网络连接")
+                if attempt < self.max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise last_error
 
             except requests.exceptions.RequestException as e:
-                if attempt == self.max_retries - 1:
-                    raise NetworkException(f"网络请求失败: {str(e)}")
-                time.sleep(2 ** attempt)
+                last_error = NetworkException(f"网络请求失败: {str(e)}")
+                if attempt < self.max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise last_error
+
+        raise last_error or NetworkException("请求失败，未知错误")
 
     def generate_lyrics(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """
@@ -161,7 +170,6 @@ class OpenAIClient(BaseAIGenerator):
                 'max_tokens': 1500
             })
 
-            import json
             content = response['choices'][0]['message']['content'].strip()
 
             try:
@@ -222,7 +230,6 @@ class OpenAIClient(BaseAIGenerator):
                 'max_tokens': 2000
             })
 
-            import json
             content = response['choices'][0]['message']['content'].strip()
 
             try:
@@ -253,8 +260,6 @@ class OpenAIClient(BaseAIGenerator):
         Returns:
             音符列表
         """
-        import re
-
         notes = []
         pattern = r'pitch[:\s]+(\d+).*?start_time[:\s]+([\d.]+).*?duration[:\s]+([\d.]+).*?velocity[:\s]+(\d+)'
 
@@ -280,8 +285,6 @@ class OpenAIClient(BaseAIGenerator):
         Returns:
             编曲数据字典
         """
-        import re
-
         tracks = []
         track_pattern = r'track[:\s]+(\w+).*?notes[:\s]+\[(.*?)\]'
 
