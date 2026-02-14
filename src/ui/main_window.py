@@ -1,6 +1,6 @@
 """
-主窗口 - 稳定版本
-使用最兼容的Flet API
+主窗口 - 重构版本
+使用服务层架构，实现UI与业务逻辑分离
 """
 import flet as ft
 from typing import Dict, Any, Optional, List
@@ -11,26 +11,38 @@ from pathlib import Path
 from .audio_player import AudioPlayer
 from .config_panel import ConfigPanel
 from .theme import DesignSystem
+from .components.loading_overlay import LoadingOverlay
+from .components.history_card import HistoryCard
 from ..config.config_manager import config_manager
 from ..ai.generator import GeneratorManager
 from ..core.file_manager import FileManager
 from ..core.history_manager import HistoryManager
 from ..core.exceptions import MusicMakerException
+from ..services.message_service import MessageService, MessageType
+from ..services.export_service import ExportService
+from ..services.music_service import MusicService
 
 logger = logging.getLogger(__name__)
 
 
 class MusicMakerApp:
-    """音悦应用主类 - 稳定版本"""
+    """音悦应用主类 - 重构版本"""
 
     def __init__(self):
         """初始化应用"""
         self.page = None
         self.config = config_manager.load_config()
+        
         self.generator_manager = GeneratorManager()
         self.generator_manager.create_from_config(self.config)
+        
         self.file_manager = FileManager(self.config.get('app', {}).get('output_dir', './output'))
         self.history_manager = HistoryManager(self.config.get('app', {}).get('history_file', './history.json'))
+        
+        self._message_service = None
+        self._export_service = ExportService(self.config.get('app', {}).get('output_dir', './output'))
+        self._music_service = MusicService(self.generator_manager)
+        
         self._config_panel_visible = False
         self._history_panel_visible = False
         self._showing_history_detail = False
@@ -38,6 +50,8 @@ class MusicMakerApp:
         
         self._current_lyrics = None
         self._current_audio_path = None
+        
+        self._loading_overlay = LoadingOverlay("正在生成...")
         
         self._build_ui_components()
 
@@ -214,6 +228,8 @@ class MusicMakerApp:
     def build(self, page: ft.Page) -> None:
         """构建主界面"""
         self.page = page
+        self._message_service = MessageService(page)
+        
         page.title = "音悦 - AI音乐创作"
         page.theme_mode = ft.ThemeMode.LIGHT
         page.padding = DesignSystem.Spacing.MD
@@ -424,28 +440,20 @@ class MusicMakerApp:
 
     def _validate_prompt(self, prompt: str) -> tuple[bool, str]:
         """验证提示词"""
-        if not prompt or not prompt.strip():
-            return False, "请输入提示词"
-        if len(prompt.strip()) < 5:
-            return False, "提示词太短，请至少输入 5 个字符"
-        if len(prompt) > 2000:
-            return False, "提示词太长，请控制在 2000 字符以内"
-        return True, ""
+        return self._music_service.validate_prompt(prompt)
 
     def _show_loading(self) -> None:
         """显示加载状态"""
-        self._loading_indicator.visible = True
-        self._loading_overlay.visible = True
-        if self._loading_overlay not in self.page.overlay:
-            self.page.overlay.append(self._loading_overlay)
+        self._loading_overlay.show()
+        if self._loading_overlay.component not in self.page.overlay:
+            self.page.overlay.append(self._loading_overlay.component)
         self.page.update()
 
     def _hide_loading(self) -> None:
         """隐藏加载状态"""
-        self._loading_indicator.visible = False
-        if self._loading_overlay in self.page.overlay:
-            self.page.overlay.remove(self._loading_overlay)
-        self._loading_overlay.visible = False
+        self._loading_overlay.hide()
+        if self._loading_overlay.component in self.page.overlay:
+            self.page.overlay.remove(self._loading_overlay.component)
         self.page.update()
 
     def _on_generate_click(self, e) -> None:
@@ -453,30 +461,24 @@ class MusicMakerApp:
         prompt = self._prompt_field.value
         is_valid, error_msg = self._validate_prompt(prompt)
         if not is_valid:
-            self._show_error(error_msg)
+            self._message_service.error(error_msg)
             return
         
         self._show_loading()
         
-        def generate():
-            try:
-                logger.info(f"开始生成歌词: {prompt[:50]}...")
-                result = self.generator_manager.generate_lyrics(
-                    prompt,
-                    style=self._style_dropdown.value,
-                    language='中文'
-                )
-                self.page.invoke(lambda: self._on_generate_complete(result))
-            except MusicMakerException as ex:
-                logger.error(f"生成失败: {ex}")
-                self.page.invoke(lambda: self._on_generate_error(str(ex)))
-            except Exception as ex:
-                logger.error(f"生成过程中发生错误: {ex}", exc_info=True)
-                self.page.invoke(lambda: self._on_generate_error(f"发生错误: {str(ex)}"))
+        def on_complete(result):
+            self.page.invoke(lambda: self._on_generate_complete(result))
         
-        thread = threading.Thread(target=generate)
-        thread.daemon = True
-        thread.start()
+        def on_error(error):
+            self.page.invoke(lambda: self._on_generate_error(error))
+        
+        self._music_service.generate_lyrics(
+            prompt,
+            style=self._style_dropdown.value,
+            language='中文',
+            on_complete=on_complete,
+            on_error=on_error
+        )
 
     def _on_generate_complete(self, result: Dict[str, Any]) -> None:
         """生成完成回调"""
@@ -489,7 +491,7 @@ class MusicMakerApp:
             self._export_lyrics_button.disabled = False
             self._export_all_button.disabled = False
             logger.info("歌词生成成功")
-            self._show_success("创作完成！")
+            self._message_service.success("创作完成！")
             self.page.update()
         else:
             self._show_error("生成失败")
@@ -497,21 +499,7 @@ class MusicMakerApp:
     def _on_generate_error(self, error: str) -> None:
         """生成错误回调"""
         self._hide_loading()
-        self._show_error(error)
-
-    def _show_success(self, message: str) -> None:
-        """显示成功消息"""
-        snack_bar = ft.SnackBar(
-            content=ft.Row([
-                ft.Icon(ft.icons.Icons.CHECK_CIRCLE, color=DesignSystem.Colors.WHITE),
-                ft.Text(message, color=DesignSystem.Colors.WHITE, size=14)
-            ], spacing=DesignSystem.Spacing.SM),
-            bgcolor=DesignSystem.Colors.SUCCESS,
-            duration=3000
-        )
-        self.page.snack_bar = snack_bar
-        snack_bar.open = True
-        self.page.update()
+        self._message_service.error(error)
 
     def _on_config_click(self, e) -> None:
         """切换配置面板"""
@@ -521,7 +509,7 @@ class MusicMakerApp:
             logger.info(f"配置面板可见性: {self._config_panel_visible}")
         except Exception as ex:
             logger.error(f"切换配置面板失败: {ex}", exc_info=True)
-            self._show_error(f"打开设置失败: {str(ex)}")
+            self._message_service.error(f"打开设置失败: {str(ex)}")
 
     def _refresh_config_panel(self) -> None:
         """刷新配置面板"""
@@ -554,10 +542,10 @@ class MusicMakerApp:
             self._update_model_options()
             self._refresh_config_panel()
             logger.info("配置已保存并应用")
-            self._show_success("配置已保存")
+            self._message_service.success("配置已保存")
         except Exception as ex:
             logger.error(f"保存配置失败: {ex}", exc_info=True)
-            self._show_error(f"保存配置失败: {str(ex)}")
+            self._message_service.error(f"保存配置失败: {str(ex)}")
 
     def _get_model_options(self) -> List[ft.dropdown.Option]:
         """获取模型选项"""
@@ -645,81 +633,40 @@ class MusicMakerApp:
         else:
             self._generate_button.disabled = True
 
-    def _show_error(self, message: str) -> None:
-        """显示错误消息"""
-        snack_bar = ft.SnackBar(
-            content=ft.Row([
-                ft.Icon(ft.icons.Icons.ERROR, color=DesignSystem.Colors.WHITE),
-                ft.Text(message, color=DesignSystem.Colors.WHITE, size=14)
-            ], spacing=DesignSystem.Spacing.SM),
-            bgcolor=DesignSystem.Colors.ERROR,
-            duration=3000
-        )
-        self.page.snack_bar = snack_bar
-        snack_bar.open = True
-        self.page.update()
-
     def _on_export_audio_click(self, e) -> None:
         """导出歌曲"""
-        self._show_info("导出歌曲功能开发中...")
+        self._message_service.info("导出歌曲功能开发中...")
 
     def _on_export_lyrics_click(self, e) -> None:
         """导出歌词"""
         if not self._current_lyrics:
-            self._show_error("没有可导出的歌词，请先生成歌词")
+            self._message_service.error("没有可导出的歌词，请先生成歌词")
             return
         
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"lyrics_{timestamp}.txt"
-            filepath = self.file_manager.output_dir / filename
-            
-            self.file_manager.output_dir.mkdir(parents=True, exist_ok=True)
-            
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(self._current_lyrics)
-            
-            logger.info(f"歌词已导出到: {filepath}")
-            self._show_success(f"歌词已保存: {filename}")
-        except Exception as ex:
-            logger.error(f"导出歌词失败: {ex}", exc_info=True)
-            self._show_error(f"导出失败: {str(ex)}")
+        result = self._export_service.export_lyrics(self._current_lyrics)
+        
+        if result['success']:
+            logger.info(f"歌词已导出到: {result['filepath']}")
+            self._message_service.success(result['message'])
+        else:
+            logger.error(f"导出歌词失败: {result['message']}")
+            self._message_service.error(result['message'])
 
     def _on_export_all_click(self, e) -> None:
         """一键导出"""
         if not self._current_lyrics:
-            self._show_error("没有可导出的内容，请先生成")
+            self._message_service.error("没有可导出的内容，请先生成")
             return
         
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.file_manager.output_dir.mkdir(parents=True, exist_ok=True)
-            
-            lyrics_filename = f"lyrics_{timestamp}.txt"
-            lyrics_filepath = self.file_manager.output_dir / lyrics_filename
-            
-            with open(lyrics_filepath, 'w', encoding='utf-8') as f:
-                f.write(self._current_lyrics)
-            
-            logger.info(f"一键导出完成: {lyrics_filename}")
-            self._show_success(f"导出完成: {lyrics_filename}")
-        except Exception as ex:
-            logger.error(f"一键导出失败: {ex}", exc_info=True)
-            self._show_error(f"导出失败: {str(ex)}")
-
-    def _show_info(self, message: str) -> None:
-        """显示信息消息"""
-        snack_bar = ft.SnackBar(
-            content=ft.Row([
-                ft.Icon(ft.icons.Icons.INFO, color=DesignSystem.Colors.WHITE),
-                ft.Text(message, color=DesignSystem.Colors.WHITE, size=14)
-            ], spacing=DesignSystem.Spacing.SM),
-            bgcolor=DesignSystem.Colors.PRIMARY,
-            duration=3000
-        )
-        self.page.snack_bar = snack_bar
-        snack_bar.open = True
-        self.page.update()
+        result = self._export_service.export_all(lyrics=self._current_lyrics)
+        
+        if result['success']:
+            logger.info(f"一键导出完成: {result['files']}")
+            for msg in result['messages']:
+                self._message_service.success(msg)
+        else:
+            for msg in result['messages']:
+                self._message_service.error(msg)
 
     def _save_to_history(self, result_type: str, prompt: str, result: Dict[str, Any]) -> None:
         """保存到历史记录"""
@@ -741,64 +688,8 @@ class MusicMakerApp:
         """创建历史记录项"""
         items = []
         for record in records:
-            record_id = record.get('id', 0)
-            prompt = record.get('prompt', '')
-            result_type = record.get('type', 'lyrics')
-            created_at = record.get('created_at', '')
-            style = record.get('style', '流行')
-            
-            type_map = {'lyrics': '歌词', 'melody': '旋律', 'arrangement': '编曲'}
-            type_text = type_map.get(result_type, result_type)
-            
-            item = ft.Container(
-                content=ft.Column([
-                    ft.Row([
-                        ft.Container(
-                            content=ft.Text(f"#{record_id}", weight=ft.FontWeight.BOLD, size=16),
-                            padding=ft.padding.symmetric(horizontal=DesignSystem.Spacing.SM, vertical=DesignSystem.Spacing.XS),
-                            bgcolor=DesignSystem.Colors.PRIMARY_LIGHT,
-                            border_radius=DesignSystem.Radius.SM
-                        ),
-                        ft.Container(
-                            content=ft.Text(type_text, size=14, weight=ft.FontWeight.W_500),
-                            padding=ft.padding.symmetric(horizontal=DesignSystem.Spacing.SM, vertical=DesignSystem.Spacing.XS),
-                            bgcolor=DesignSystem.Colors.SUCCESS_LIGHT,
-                            border_radius=DesignSystem.Radius.SM
-                        ),
-                        ft.Container(expand=True),
-                        ft.Text(created_at[:19] if created_at else '', size=12, color=DesignSystem.Colors.TEXT_SECONDARY)
-                    ], alignment=ft.MainAxisAlignment.START),
-                    ft.Container(
-                        content=ft.Text(
-                            prompt[:120] + '...' if len(prompt) > 120 else prompt,
-                            size=15,
-                            color=DesignSystem.Colors.TEXT_PRIMARY,
-                            max_lines=2,
-                            overflow=ft.TextOverflow.ELLIPSIS
-                        ),
-                        padding=ft.padding.symmetric(vertical=DesignSystem.Spacing.SM)
-                    ),
-                    ft.Row([
-                        ft.Container(
-                            content=ft.Text(f"风格: {style}", size=13, color=DesignSystem.Colors.TEXT_SECONDARY),
-                            padding=ft.padding.symmetric(horizontal=DesignSystem.Spacing.SM, vertical=DesignSystem.Spacing.XS),
-                            bgcolor=DesignSystem.Colors.GREY_100,
-                            border_radius=DesignSystem.Radius.SM
-                        )
-                    ])
-                ], spacing=DesignSystem.Spacing.MD),
-                padding=DesignSystem.Spacing.XL,
-                border_radius=DesignSystem.Radius.LG,
-                bgcolor=DesignSystem.Colors.WHITE,
-                shadow=ft.BoxShadow(
-                    spread_radius=0,
-                    blur_radius=8,
-                    color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK)
-                ),
-                on_click=lambda e, rid=record_id: self._on_history_item_click(e, rid),
-                ink=True
-            )
-            items.append(item)
+            card = HistoryCard(record, on_click=self._on_history_item_click)
+            items.append(card.component)
         
         if not items:
             items.append(
@@ -841,20 +732,20 @@ class MusicMakerApp:
             logger.info("历史记录已刷新")
         except Exception as ex:
             logger.error(f"刷新历史记录失败: {ex}", exc_info=True)
-            self._show_error(f"刷新失败: {str(ex)}")
+            self._message_service.error(f"刷新失败: {str(ex)}")
 
-    def _on_history_item_click(self, e, record_id: int) -> None:
+    def _on_history_item_click(self, record_id: int) -> None:
         """打开历史记录详情"""
         try:
             record = self.history_manager.get_record_by_id(record_id)
             if not record:
-                self._show_error(f"未找到记录 #{record_id}")
+                self._message_service.error(f"未找到记录 #{record_id}")
                 return
             self._show_history_detail(record)
             logger.info(f"打开历史记录详情: #{record_id}")
         except Exception as ex:
             logger.error(f"打开历史记录详情失败: {ex}", exc_info=True)
-            self._show_error(f"打开记录失败: {str(ex)}")
+            self._message_service.error(f"打开记录失败: {str(ex)}")
 
     def _show_history_detail(self, record: Dict[str, Any]) -> None:
         """显示历史记录详情"""
