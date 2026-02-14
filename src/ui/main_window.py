@@ -406,7 +406,7 @@ class MusicMakerApp:
             )
         )
 
-        config_panel = ConfigPanel(self.config, self._on_save_config)
+        config_panel = ConfigPanel(self.config, self._on_save_config, self._refresh_config_panel)
         config_area = config_panel.build(page)
 
         main_content = ft.Row([
@@ -625,6 +625,29 @@ class MusicMakerApp:
             logger.error(f"切换配置面板失败: {ex}", exc_info=True)
             self._show_error(f"打开设置失败: {str(ex)}")
 
+    def _refresh_config_panel(self) -> None:
+        """刷新配置面板"""
+        try:
+            config_panel = ConfigPanel(self.config, self._on_save_config, self._refresh_config_panel)
+            self._config_content = ft.Column([
+                ft.Row([
+                    ft.Text("配置管理", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_800),
+                    ft.Container(expand=True),
+                    ft.IconButton(
+                        icon=ft.icons.Icons.CLOSE,
+                        icon_color=ft.Colors.GREY_700,
+                        tooltip="关闭",
+                        on_click=self._on_config_click
+                    )
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                ft.Divider(height=2, color=ft.Colors.BLUE_200),
+                config_panel.build(self.page)
+            ], expand=True, spacing=12)
+            
+            self._update_main_content()
+        except Exception as ex:
+            logger.error(f"刷新配置面板失败: {ex}", exc_info=True)
+    
     def _on_save_config(self, new_config: Dict[str, Any]) -> None:
         """
         保存并应用新的应用配置。
@@ -639,6 +662,8 @@ class MusicMakerApp:
             self.config = new_config
             self.generator_manager.create_from_config(self.config)
             self._update_model_options()
+            
+            self._refresh_config_panel()
             logger.info("配置已保存并应用")
             self._show_success("配置已保存")
         except Exception as ex:
@@ -655,10 +680,22 @@ class MusicMakerApp:
         models_config = self.config.get('models', {})
         options = []
 
+        # 先检查是否有可用的生成器
+        available_generators = self.generator_manager.get_available_generators()
+        
+        # 如果有演示模式，添加它
+        if 'mock' in available_generators:
+            options.append(ft.dropdown.Option(key='mock', text='演示模式 (无需API)'))
+
         for model_id, model_config in models_config.items():
-            if model_config.get('enabled', False):
+            if model_config.get('enabled', False) and model_config.get('api_key'):
                 model_name = model_config.get('name', model_id)
                 options.append(ft.dropdown.Option(key=model_id, text=model_name))
+        
+        # 如果没有其他选项但有演示模式，确保演示模式被包含
+        if not options and 'mock' in available_generators:
+            options.append(ft.dropdown.Option(key='mock', text='演示模式 (无需API)'))
+        
         return options
 
     def _update_model_options(self) -> None:

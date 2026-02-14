@@ -7,6 +7,100 @@ from .openai_client import OpenAIClient
 from ..core.exceptions import APIException, ValidationException
 
 
+class MockGenerator(BaseAIGenerator):
+    """模拟生成器 - 用于演示，无需API密钥"""
+    
+    def __init__(self, config: Dict[str, Any]):
+        super().__init__(config)
+    
+    def generate_lyrics(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """模拟生成歌词"""
+        self._validate_prompt(prompt)
+        
+        style = kwargs.get('style', '流行')
+        language = kwargs.get('language', '中文')
+        
+        lyrics = f"""【{style}风格歌词示例】
+
+主歌：
+在这个美好的时光里
+阳光洒在大地上
+微风轻轻吹过
+带来无限的希望
+
+副歌：
+哦~ 这是一首{style}的旋律
+跳动在我心底
+让我们一起歌唱
+感受音乐的魔力
+
+主歌：
+跟着节奏摇摆
+放下所有烦恼
+音乐让我们相遇
+在这美好时刻
+
+副歌：
+哦~ 这是一首{style}的旋律
+跳动在我心底
+让我们一起歌唱
+感受音乐的魔力
+
+(生成提示：以上是模拟结果，配置API密钥后可获得真实AI创作"""
+        
+        metadata = {
+            'model': 'Mock Generator',
+            'style': style,
+            'language': language,
+            'tokens_used': 0
+        }
+        
+        return self._format_result('lyrics', lyrics, metadata)
+    
+    def generate_melody(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """模拟生成旋律"""
+        self._validate_prompt(prompt)
+        
+        notes = [
+            {'pitch': 60, 'start_time': 0, 'duration': 0.5, 'velocity': 80},
+            {'pitch': 62, 'start_time': 0.5, 'duration': 0.5, 'velocity': 80},
+            {'pitch': 64, 'start_time': 1, 'duration': 0.5, 'velocity': 80},
+            {'pitch': 65, 'start_time': 1.5, 'duration': 0.5, 'velocity': 80},
+            {'pitch': 67, 'start_time': 2, 'duration': 1, 'velocity': 85}
+        ]
+        
+        metadata = {
+            'model': 'Mock Generator',
+            'style': kwargs.get('style', '流行'),
+            'tempo': kwargs.get('tempo', 120),
+            'duration': kwargs.get('duration', 30),
+            'notes_count': len(notes)
+        }
+        
+        return self._format_result('melody', notes, metadata)
+    
+    def generate_arrangement(self, prompt: str, **kwargs) -> Dict[str, Any]:
+        """模拟生成编曲"""
+        self._validate_prompt(prompt)
+        
+        arrangement = {
+            'tracks': [
+                {'name': '主旋律', 'notes': []},
+                {'name': '贝斯', 'notes': []}
+            ]
+        }
+        
+        metadata = {
+            'model': 'Mock Generator',
+            'style': kwargs.get('style', '流行'),
+            'tempo': kwargs.get('tempo', 120),
+            'duration': kwargs.get('duration', 60),
+            'tracks_count': len(arrangement['tracks'])
+        }
+        
+        return self._format_result('arrangement', arrangement, metadata)
+
+
 class GeneratorManager:
     """生成器管理器 - 支持多模型切换"""
 
@@ -143,19 +237,24 @@ class GeneratorManager:
 
         self._generators.clear()
 
+        has_valid_generator = False
+        
         for model_id, model_config in models_config.items():
             if not model_config.get('enabled', False):
-                continue
-
-            if not model_config.get('api_key'):
-                continue
-
-            try:
-                generator = self._create_generator(model_id, model_config)
-                if generator:
-                    self.register_generator(model_id, generator)
-            except Exception as e:
-                print(f"创建生成器 {model_id} 失败: {e}")
+                if model_config.get('api_key'):
+                    try:
+                        generator = self._create_generator(model_id, model_config)
+                        if generator:
+                            self.register_generator(model_id, generator)
+                            has_valid_generator = True
+                    except Exception as e:
+                        print(f"创建生成器 {model_id} 失败: {e}")
+        
+        if not has_valid_generator:
+            mock_config = {'name': '演示模式'}
+            self.register_generator('mock', MockGenerator(mock_config))
+            current_model = 'mock'
+            print("未找到已配置的AI模型，启用演示模式")
 
         if current_model in self._generators:
             self.set_current_generator(current_model)

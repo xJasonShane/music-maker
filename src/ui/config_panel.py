@@ -12,16 +12,18 @@ from datetime import datetime
 class ConfigPanel:
     """配置面板 - 支持多模型配置，采用现代化UI设计"""
 
-    def __init__(self, config: Dict[str, Any], on_save: Optional[Callable] = None):
+    def __init__(self, config: Dict[str, Any], on_save: Optional[Callable] = None, on_refresh: Optional[Callable] = None):
         """
         初始化配置面板
 
         Args:
             config: 当前配置
             on_save: 保存回调
+            on_refresh: 刷新UI回调
         """
         self.config = config
         self.on_save = on_save
+        self.on_refresh = on_refresh
         self._page = None
         self._model_configs: Dict[str, Dict[str, ft.Control]] = {}
         self._output_dir = None
@@ -179,7 +181,8 @@ class ConfigPanel:
         """分类切换"""
         self._selected_category = category
         self._selected_model = None
-        self._refresh_ui()
+        if self.on_refresh:
+            self.on_refresh()
 
     def _create_api_config_content(self, models_config: Dict[str, Any], current_model: str) -> ft.Column:
         """创建API配置内容"""
@@ -682,8 +685,13 @@ class ConfigPanel:
 
     def _on_model_select(self, model_id: str):
         """选择模型"""
-        self.config['current_model'] = model_id
-        self._refresh_ui()
+        if self._selected_model == model_id:
+            self._selected_model = None
+        else:
+            self._selected_model = model_id
+            self.config['current_model'] = model_id
+        if self.on_refresh:
+            self.on_refresh()
 
     def _on_model_enabled_change(self, model_id: str, enabled: bool):
         """模型启用状态改变"""
@@ -926,10 +934,9 @@ class ConfigPanel:
             self._page.update()
 
     def _refresh_ui(self):
-        """刷新UI"""
-        if self._page and hasattr(self._page, 'dialog') and self._page.dialog:
-            self._page.dialog.content = self.build(self._page)
-            self._page.update()
+        """刷新UI - 供主窗口调用以重新构建界面"""
+        # 这个方法主要是为了告诉主窗口需要刷新
+        pass
 
     def get_config(self) -> Dict[str, Any]:
         """获取当前配置"""

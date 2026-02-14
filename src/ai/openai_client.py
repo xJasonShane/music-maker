@@ -120,7 +120,7 @@ class OpenAIClient(BaseAIGenerator):
             return self._format_result('lyrics', lyrics, metadata)
 
         except Exception as e:
-            raise APIException("生成歌词失败", str(e))
+            raise APIException("生成歌词失败", details=str(e))
 
     def generate_melody(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """
@@ -180,7 +180,7 @@ class OpenAIClient(BaseAIGenerator):
             return self._format_result('melody', notes, metadata)
 
         except Exception as e:
-            raise APIException("生成旋律失败", str(e))
+            raise APIException("生成旋律失败", details=str(e))
 
     def generate_arrangement(self, prompt: str, **kwargs) -> Dict[str, Any]:
         """
@@ -241,7 +241,7 @@ class OpenAIClient(BaseAIGenerator):
             return self._format_result('arrangement', arrangement, metadata)
 
         except Exception as e:
-            raise APIException("生成编曲失败", str(e))
+            raise APIException("生成编曲失败", details=str(e))
 
     def _parse_melody_from_text(self, text: str) -> list:
         """
